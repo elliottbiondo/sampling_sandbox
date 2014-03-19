@@ -1,2 +1,2 @@
 all:
-	g++ sampling.cpp -o sampling.out
+	g++ -g sampling.cpp -o samp -lMOAB

@@ -18,17 +18,16 @@
 #include <stdlib.h>
 #include <vector>
 
-#include <iostream>
-#include <sstream>
-#include <iomanip> // for setprecision
-#include <limits> // for min/max values
-#include <math.h>
-#include <vector>
+//#include <iostream>
+//#include <sstream>
+//#include <iomanip> // for setprecision
+//#include <limits> // for min/max values
+//#include <math.h>
+//#include <vector>
 
 #include "moab/Core.hpp"
-#include "MBTagConventions.hpp"
+//#include "MBTagConventions.hpp"
 #include "moab/Range.hpp"
-#include "moab/Core.hpp"
 
 //MBInterface *MBI();
 
@@ -142,14 +141,36 @@ int main(){
     printf("%i    %f   %f \n", i+1, (float) answers[i]/N, (float) (i+1)/15.0);
   }
 
-  moab::Core *mb;
-  moab::ErrorCode rval = mb->load_mesh("test.h5m");
+  //moab::Core *mb;
+  moab::Interface *mb = new moab::Core;
+  moab::ErrorCode rval;
+  rval = mb->load_mesh("test.h5m");
+  moab::Range hex;
+  rval = mb->get_entities_by_type( 0, moab::MBHEX, hex );
   moab::Tag phtnSrcTag;
-
+  //int phtnSrcTagSize;
+  //rval = mb->tag_get_bytes(phtnSrcTag, phtnSrcTagSize);
+  moab::DataType tag_type;
+  rval = mb->tag_get_data_type(phtnSrcTag, tag_type);
+  //if(tag_type == moab::MB_TYPE_INTEGER) printf("hello\n");
+  //if(tag_type == NULL) printf("helloaaaaa\n");
+  //printf("\n\n\n%i", tag_type);
+  //rval = mb->tag_get_handle( "ve_idx", 0, moab::MB_TYPE_INTEGER, phtnSrcTag, moab::MB_TAG_ANY);
+  rval = mb->tag_get_handle( "idx", 0, moab::MB_TYPE_INTEGER, phtnSrcTag);
+  //std::vector<int>* ans = new std::vector<int> [phtnSrcTagSize * hex.size() / sizeof(int)];
+  int ans[8];
+  rval = mb->tag_get_data( phtnSrcTag, hex, ans);
+  
+  for(i=0; i<hex.size(); ++i){
+    printf("\n %i", ans[i]);
+  }
+  
+  //std::vector<moab::EntityHandle> ents; 
   return 0;
 }
 
-//MBInterface *MBI(){
-//    static MBCore instance;
+//moab::MBInterface *MBI(){
+//    static MBCore instance; 
 //    return &instance;
 //}
+
