@@ -4,51 +4,12 @@
  * M. D. Vose, IEEE T. Software Eng. 17, 972 (1991)
  * A. J. Walker, Electronics Letters 10, 127 (1974); ACM TOMS 3, 253 (1977)
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <vector>
-#include <assert.h>
-
-#include <iostream>
-//#include <sstream>
-//#include <iomanip> // for setprecision
-//#include <limits> // for min/max values
-//#include <math.h>
-//#include <vector>
-
-#include "moab/Core.hpp"
-#include "MBCore.hpp"
-//#include "MBTagConventions.hpp"
-#include "moab/Range.hpp"
 
 
-#include "sampling.h"
+#include "sampling.hpp"
 MBInterface *MBI();
 
-
-/*
-std::vector<double> pdfFromIMesh(imesh, char* tagName)
-{
-
-}
-
-std::vector<double> pdfFromIMesh(imesh, char* tagName, char* biasTagName)
-{
-
-}
-
-std::vector<double> pdfFromHDF5(hdf5, char* tagName, char* biasTagName)
-{
-
-}
-
-std::vector<double> pdfFromHDF5(hdf5, char* tagName)
-{
-
-}
-*/
-
-AliasTable::AliasTable(std::vector<double> p){
+Sampling::AliasTable::AliasTable(std::vector<double> p){
     
     n = p.size();
     prob.resize(n);
@@ -103,22 +64,10 @@ AliasTable::AliasTable(std::vector<double> p){
         prob[ S[--nS] ] = 1;
 }
 
-int AliasTable::drawSample(double ran1, double ran2){
+int Sampling::AliasTable::drawSample(double ran1, double ran2){
     int i = (int) n * ran1;
     return ran2 < prob[i] ? i : alias[i];
 }
-
-
-void pdfFromMOABFile(char* fileName, char* tagName){
-
-  MBInterface *mb = new MBCore;
-  MBErrorCode rval;
-  rval = mb->load_mesh("test.h5m");
-
-
-
-}
-
 
 
 
@@ -127,7 +76,7 @@ int main(int argc, char* argv[])
   double my_array[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
   std::vector<double> my_vec(&my_array[0], &my_array[0]+5);
 
-  AliasTable myTable(my_vec);
+  Sampling::AliasTable myTable(my_vec);
 
   int answers[] = {0, 0, 0, 0, 0};
   int N = 1000000;
