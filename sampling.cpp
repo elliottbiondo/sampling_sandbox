@@ -1,19 +1,9 @@
 /*
- * Library:   ransampl (random number sampling)
- *
- * File:      ransampl.c
- *
  * Contents:  Random-number sampling using the Walker-Vose alias method,
- *            as described by Keith Schwarz (2011)
- *            [http://www.keithschwarz.com/darts-dice-coins]
- *
  * Copyright: Joachim Wuttke, Forschungszentrum Juelich GmbH (2013)
- *
- * License:   see ../COPYING (FreeBSD)
- * 
- * Homepage:  apps.jcns.fz-juelich.de/ransampl
+ * M. D. Vose, IEEE T. Software Eng. 17, 972 (1991)
+ * A. J. Walker, Electronics Letters 10, 127 (1974); ACM TOMS 3, 253 (1977)
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
@@ -29,26 +19,31 @@
 //#include "MBTagConventions.hpp"
 #include "moab/Range.hpp"
 
+
+#include "sampling.h"
 //MBInterface *MBI();
 
 
 /*
-std::vector<double> pdfFromIMesh(imesh, char* tagName){
+std::vector<double> pdfFromIMesh(imesh, char* tagName)
+{
 
 }
 
-std::vector<double> pdfFromIMesh(imesh, char* tagName, char* biasTagName){
+std::vector<double> pdfFromIMesh(imesh, char* tagName, char* biasTagName)
+{
 
 }
 
-std::vector<double> pdfFromHDF5(hdf5, char* tagName, char* biasTagName){
+std::vector<double> pdfFromHDF5(hdf5, char* tagName, char* biasTagName)
+{
 
 }
 
-std::vector<double> pdfFromHDF5(hdf5, char* tagName){
+std::vector<double> pdfFromHDF5(hdf5, char* tagName)
+{
 
 }
-*/
 
 class AliasTable{
   std::vector<double> prob;
@@ -58,6 +53,7 @@ public:
   AliasTable(std::vector<double> p);
   int drawSample(double ran1, double ran2);
 };
+*/
 
 AliasTable::AliasTable(std::vector<double> p){
     
@@ -119,7 +115,8 @@ int AliasTable::drawSample(double ran1, double ran2){
     return ran2 < prob[i] ? i : alias[i];
 }
 
-int main(){
+int main()
+{
 
   double my_array[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
   std::vector<double> my_vec(&my_array[0], &my_array[0]+5);
@@ -147,22 +144,30 @@ int main(){
   rval = mb->load_mesh("test.h5m");
   moab::Range hex;
   rval = mb->get_entities_by_type( 0, moab::MBHEX, hex );
+
+  moab::Tag idxTag;
   moab::Tag phtnSrcTag;
-  //int phtnSrcTagSize;
-  //rval = mb->tag_get_bytes(phtnSrcTag, phtnSrcTagSize);
-  moab::DataType tag_type;
-  rval = mb->tag_get_data_type(phtnSrcTag, tag_type);
-  //if(tag_type == moab::MB_TYPE_INTEGER) printf("hello\n");
-  //if(tag_type == NULL) printf("helloaaaaa\n");
-  //printf("\n\n\n%i", tag_type);
-  //rval = mb->tag_get_handle( "ve_idx", 0, moab::MB_TYPE_INTEGER, phtnSrcTag, moab::MB_TAG_ANY);
-  rval = mb->tag_get_handle( "idx", 0, moab::MB_TYPE_INTEGER, phtnSrcTag);
-  //std::vector<int>* ans = new std::vector<int> [phtnSrcTagSize * hex.size() / sizeof(int)];
-  int ans[8];
-  rval = mb->tag_get_data( phtnSrcTag, hex, ans);
+
+  //rval = mb->tag_get_handle( "ve_idx", 0, tag_type, idxTag, moab::MB_TAG_ANY);
+  rval = mb->tag_get_handle( "idx", 0, moab::MB_TYPE_INTEGER, idxTag);
+  rval = mb->tag_get_handle( "phtn_src", 0, moab::MB_TYPE_DOUBLE, phtnSrcTag);
+
+  int idxTagSize;
+  int phtnSrcTagSize;
+  rval = mb->tag_get_bytes(idxTag, idxTagSize);
+  rval = mb->tag_get_bytes(idxTag, phtnSrcTagSize);
+
+  //moab::DataType tag_type;
+  //rval = mb->tag_get_data_type(idxTag, tag_type);
+
+  std::vector<int>* idxData = new std::vector<int> [idxTagSize * hex.size() / sizeof(int)];
+  std::vector<double>* phtnSrcData = new std::vector<double> [phtnSrcTagSize * hex.size() / sizeof(double)];
+
+  rval = mb->tag_get_data( idxTag, hex, idxData);
+  rval = mb->tag_get_data( phtnSrcTag, hex, phtnSrcData);
   
   for(i=0; i<hex.size(); ++i){
-    printf("\n %i", ans[i]);
+    printf("\n idx: %i phtn_src: %f", ((int*)(idxData))[i], ((double*)(phtnSrcData))[i]);
   }
   
   //std::vector<moab::EntityHandle> ents; 
