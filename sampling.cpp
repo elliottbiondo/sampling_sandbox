@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <vector>
 
-//#include <iostream>
+#include <iostream>
 //#include <sstream>
 //#include <iomanip> // for setprecision
 //#include <limits> // for min/max values
@@ -126,7 +126,7 @@ int main()
 
   printf("bin |  prob  | expected prob\n");
   for(i=0; i<5; i++){
-    printf("%i    %f   %f \n", i+1, (float) answers[i]/N, (float) (i+1)/15.0);
+    printf("%i    %f   %f \n", i+1, (double) answers[i]/N, (double) (i+1)/15.0);
   }
 
   //moab::Core *mb;
@@ -138,27 +138,53 @@ int main()
 
   moab::Tag idxTag;
   moab::Tag phtnSrcTag;
+  moab::Tag phtnSrcTag2;
 
   //rval = mb->tag_get_handle( "ve_idx", 0, tag_type, idxTag, moab::MB_TAG_ANY);
   rval = mb->tag_get_handle( "idx", 0, moab::MB_TYPE_INTEGER, idxTag);
   rval = mb->tag_get_handle( "phtn_src", 0, moab::MB_TYPE_DOUBLE, phtnSrcTag);
+  rval = mb->tag_get_handle( "phtn_src2", 0, moab::MB_TYPE_DOUBLE, phtnSrcTag2);
 
   int idxTagSize;
   int phtnSrcTagSize;
+  int phtnSrcTagSize2;
+
   rval = mb->tag_get_bytes(idxTag, idxTagSize);
-  rval = mb->tag_get_bytes(idxTag, phtnSrcTagSize);
+  rval = mb->tag_get_bytes(phtnSrcTag, *(&phtnSrcTagSize));
+  rval = mb->tag_get_bytes(phtnSrcTag2, *(&phtnSrcTagSize2));
+
+  std::cout<< phtnSrcTagSize << std::endl;
+  std::cout<< phtnSrcTagSize2 << std::endl;
 
   //moab::DataType tag_type;
   //rval = mb->tag_get_data_type(idxTag, tag_type);
 
   std::vector<int>* idxData = new std::vector<int> [idxTagSize * hex.size() / sizeof(int)];
   std::vector<double>* phtnSrcData = new std::vector<double> [phtnSrcTagSize * hex.size() / sizeof(double)];
+//  std::vector<double>* phtnSrcData2 = new std::vector<double> [phtnSrcTagSize2 * (hex.size() + 2) / sizeof(double)];
+
+  //std::vector<double>* phtnSrcData2 = new std::vector<double> [phtnSrcTagSize2 * hex.size() / 4];
+
+  std::vector<double> phtnSrcData2;
+  phtnSrcData2.resize(hex.size()*phtnSrcTagSize2/sizeof(double)); 
+ //void* ptr = &phtnSrcData2[0];
+
+//printf("\n hex.size(): %i", (int) hex.size());
+//printf("\n vector length: %i double %i", (int) phtnSrcTagSize2, (int) sizeof(double));
 
   rval = mb->tag_get_data( idxTag, hex, idxData);
   rval = mb->tag_get_data( phtnSrcTag, hex, phtnSrcData);
+  rval = mb->tag_get_data( phtnSrcTag2, hex, &phtnSrcData2[0]);
+
+  //std::cout << phtnSrcData2.size() <<std::endl;
   
-  for(i=0; i<hex.size(); ++i){
-    printf("\n idx: %i phtn_src: %f", ((int*)(idxData))[i], ((double*)(phtnSrcData))[i]);
+//  for(i=0; i<hex.size(); ++i){
+//    printf("\n idx: %i phtn_src: %f", ((int*)(idxData))[i], ((double*)(phtnSrcData))[i]);
+//  }
+
+  for(i=0; i<hex.size()*2; ++i){
+    //printf("\n phtn_src2: %f",phtnSrcData2[i]);
+    std::cout << phtnSrcData2[i] << std::endl;
   }
   
   //std::vector<moab::EntityHandle> ents; 
