@@ -7,7 +7,10 @@
 
 
 #include "sampling.hpp"
-MBInterface *MBI();
+#define MBI moab_instance()
+
+Sampling *Sampling::instance_ = NULL;
+//MBInterface *MBI;
 
 Sampling::AliasTable::AliasTable(std::vector<double> p){
     
@@ -69,7 +72,70 @@ int Sampling::AliasTable::drawSample(double ran1, double ran2){
     return ran2 < prob[i] ? i : alias[i];
 }
 
+void Sampling::create_instance(MBInterface *mb_impl)
+{
+  if (NULL == mb_impl) mb_impl = new MBCore();
+  instance_ = new Sampling(mb_impl);
+}
 
+Sampling::Sampling(MBInterface *mb_impl)
+   : mbImpl(mb_impl)
+{
+}
+
+
+void Sampling::blash(){
+
+ std::string input_filename="test.h5m";
+
+ MBEntityHandle loaded_file_set;
+ MBErrorCode rval;
+
+ // create meshset to load file into
+ rval = MBI->create_meshset(MESHSET_SET, loaded_file_set );
+ assert( rval == MB_SUCCESS );
+ // load file
+ rval = MBI->load_file( input_filename.c_str(), &loaded_file_set );
+ assert( rval == MB_SUCCESS );
+ std::cout << "file loaded" << std::endl;
+
+  MBRange hex;
+  rval = MBI->get_entities_by_type( 0, MBHEX, hex );
+  MBTag idxTag;
+  MBTag phtnSrcTag;
+  MBTag phtnSrcTag2;
+
+  rval = MBI->tag_get_handle( "idx", moab::MB_TAG_VARLEN, MB_TYPE_INTEGER, idxTag);
+  rval = MBI->tag_get_handle( "phtn_src", moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, phtnSrcTag);
+  rval = MBI->tag_get_handle( "phtn_src2", moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, phtnSrcTag2);
+
+  int idxTagSize;
+  int phtnSrcTagSize;
+  int phtnSrcTagSize2;
+
+  rval = MBI->tag_get_bytes(idxTag, *(&idxTagSize));
+  rval = MBI->tag_get_bytes(phtnSrcTag, *(&phtnSrcTagSize));
+  rval = MBI->tag_get_bytes(phtnSrcTag2, *(&phtnSrcTagSize2));
+
+  std::vector<int> idxData;
+  idxData.resize(hex.size()*idxTagSize/sizeof(int)); 
+
+  std::vector<double> phtnSrcData;
+  phtnSrcData.resize(hex.size()*phtnSrcTagSize/sizeof(double)); 
+
+  std::vector<double> phtnSrcData2;
+  phtnSrcData2.resize(hex.size()*phtnSrcTagSize2/sizeof(double)); 
+
+  rval = MBI->tag_get_data( idxTag, hex, &idxData[0]);
+  rval = MBI->tag_get_data( phtnSrcTag, hex, &phtnSrcData[0]);
+  rval = MBI->tag_get_data( phtnSrcTag2, hex, &phtnSrcData2[0]);
+  
+  int i;
+  for(i=0; i<hex.size(); ++i){
+    std::cout << idxData[i] <<" "<< phtnSrcData[i] <<" "<<phtnSrcData2[2*i]<<" "<< phtnSrcData2[2*i+1] <<" "<< std::endl;
+  }
+  
+}
 
 int main(int argc, char* argv[])
 {
@@ -93,60 +159,13 @@ int main(int argc, char* argv[])
     printf("%i    %f   %f \n", i+1, (double) answers[i]/N, (double) (i+1)/15.0);
   }
 
- std::string input_filename=argv[1];
- MBEntityHandle loaded_file_set;
- MBErrorCode rval;
-
- // create meshset to load file into
- rval = MBI()->create_meshset( MESHSET_SET, loaded_file_set );
- assert( rval == MB_SUCCESS );
- // load file
- rval = MBI()->load_file( input_filename.c_str(), &loaded_file_set );
- assert( rval == MB_SUCCESS );
- std::cout << "file loaded" << std::endl;
-
-  //MBInterface *mb = new MBCore;
-  //rval = MBI()->load_mesh("test.h5m");
-  MBRange hex;
-  rval = MBI()->get_entities_by_type( 0, MBHEX, hex );
-  MBTag idxTag;
-  MBTag phtnSrcTag;
-  MBTag phtnSrcTag2;
-
-  rval = MBI()->tag_get_handle( "idx", moab::MB_TAG_VARLEN, MB_TYPE_INTEGER, idxTag);
-  rval = MBI()->tag_get_handle( "phtn_src", moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, phtnSrcTag);
-  rval = MBI()->tag_get_handle( "phtn_src2", moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, phtnSrcTag2);
-
-  int idxTagSize;
-  int phtnSrcTagSize;
-  int phtnSrcTagSize2;
-
-  rval = MBI()->tag_get_bytes(idxTag, *(&idxTagSize));
-  rval = MBI()->tag_get_bytes(phtnSrcTag, *(&phtnSrcTagSize));
-  rval = MBI()->tag_get_bytes(phtnSrcTag2, *(&phtnSrcTagSize2));
-
-  std::vector<int> idxData;
-  idxData.resize(hex.size()*idxTagSize/sizeof(int)); 
-
-  std::vector<double> phtnSrcData;
-  phtnSrcData.resize(hex.size()*phtnSrcTagSize/sizeof(double)); 
-
-  std::vector<double> phtnSrcData2;
-  phtnSrcData2.resize(hex.size()*phtnSrcTagSize2/sizeof(double)); 
-
-  rval = MBI()->tag_get_data( idxTag, hex, &idxData[0]);
-  rval = MBI()->tag_get_data( phtnSrcTag, hex, &phtnSrcData[0]);
-  rval = MBI()->tag_get_data( phtnSrcTag2, hex, &phtnSrcData2[0]);
-  
-  for(i=0; i<hex.size(); ++i){
-    std::cout << idxData[i] <<" "<< phtnSrcData[i] <<" "<<phtnSrcData2[2*i]<<" "<< phtnSrcData2[2*i+1] <<" "<< std::endl;
-  }
-  
-  return 0;
+ Sampling& sampling = *Sampling::instance();
+ sampling.blash();
+return 0;
 }
 
-MBInterface *MBI() 
-{
-   static MBCore instance;
-   return &instance;
-}
+//MBInterface *MBI 
+//{
+//   static MBCore instance;
+//   return &instance;
+//}
