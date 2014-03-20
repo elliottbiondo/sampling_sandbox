@@ -84,9 +84,9 @@ Sampling::Sampling(MBInterface *mb_impl)
 }
 
 
-void Sampling::blash(){
 
- std::string input_filename="test.h5m";
+
+void Sampling::blash(char* input_filename){
 
  MBEntityHandle loaded_file_set;
  MBErrorCode rval;
@@ -95,9 +95,9 @@ void Sampling::blash(){
  rval = MBI->create_meshset(MESHSET_SET, loaded_file_set );
  assert( rval == MB_SUCCESS );
  // load file
- rval = MBI->load_file( input_filename.c_str(), &loaded_file_set );
+ //rval = MBI->load_file( input_filename.c_str(), &loaded_file_set );
+ rval = MBI->load_file( input_filename, &loaded_file_set );
  assert( rval == MB_SUCCESS );
- std::cout << "file loaded" << std::endl;
 
   MBRange hex;
   rval = MBI->get_entities_by_type( 0, MBHEX, hex );
@@ -137,6 +137,51 @@ void Sampling::blash(){
   
 }
 
+std::vector<double> Sampling::pdfFromMesh(char* fileName, char* tagName){
+
+
+ MBEntityHandle loaded_file_set;
+ MBErrorCode rval;
+
+ // create meshset to load file into
+ rval = MBI->create_meshset(MESHSET_SET, loaded_file_set );
+ assert( rval == MB_SUCCESS );
+ // load file
+ rval = MBI->load_file( fileName, &loaded_file_set );
+ assert( rval == MB_SUCCESS );
+
+  MBRange hex;
+  rval = MBI->get_entities_by_type( 0, MBHEX, hex );
+  MBTag phtnSrcTag;
+
+  rval = MBI->tag_get_handle( tagName, moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, phtnSrcTag);
+
+  int phtnSrcTagSize;
+
+  rval = MBI->tag_get_bytes(phtnSrcTag, *(&phtnSrcTagSize));
+
+  int tagLen = phtnSrcTagSize/sizeof(double);
+
+  std::vector<double> phtnSrcData;
+  phtnSrcData.resize(hex.size()*tagLen); 
+
+  rval = MBI->tag_get_data( phtnSrcTag, hex, &phtnSrcData[0]);
+
+  
+  int i, j;
+  for(i=0; i<hex.size(); ++i){
+    for(j=0; j<tagLen; ++j){
+    phtnSrcData[i*tagLen + j] *=  2.0; //veVol[i];
+    std::cout <<phtnSrcData[i*tagLen+j] << std::endl;
+    }
+  }
+
+  return phtnSrcData;
+}
+
+
+
+
 int main(int argc, char* argv[])
 {
   double my_array[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
@@ -160,7 +205,8 @@ int main(int argc, char* argv[])
   }
 
  Sampling& sampling = *Sampling::instance();
- sampling.blash();
+ std::vector<double> results = sampling.pdfFromMesh(argv[1], argv[2]);
+
 return 0;
 }
 

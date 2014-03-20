@@ -20,7 +20,8 @@ class Sampling
 public:
   static Sampling *instance(MBInterface *mb_impl = NULL);
   ~Sampling();
-  void blash();
+  void blash(char* input_filename);
+  std::vector<double> pdfFromMesh(char* fileName, char* tagName);
 
 public:
   class AliasTable
@@ -33,8 +34,8 @@ public:
     friend class Sampling;
   
   public:
-    AliasTable(std::vector<double> p);
     int drawSample(double ran1, double ran2);
+    AliasTable(std::vector<double> p);
   };
 
 public:
