@@ -80,84 +80,40 @@ int Sampling::AliasTable::drawSample(double ran1, double ran2){
 }
 
 
-
-void Sampling::blash(char* input_filename){
-
- MBEntityHandle loaded_file_set;
- MBErrorCode rval;
-
- // create meshset to load file into
- rval = MBI->create_meshset(MESHSET_SET, loaded_file_set );
- assert( rval == MB_SUCCESS );
- // load file
- //rval = MBI->load_file( input_filename.c_str(), &loaded_file_set );
- rval = MBI->load_file( input_filename, &loaded_file_set );
- assert( rval == MB_SUCCESS );
-
-  MBRange ves;
-  rval = MBI->get_entities_by_type( 0, MBHEX, ves );
-  MBTag idxTag;
-  MBTag phtnSrcTag;
-  MBTag phtnSrcTag2;
-
-  rval = MBI->tag_get_handle( "idx", moab::MB_TAG_VARLEN, MB_TYPE_INTEGER, idxTag);
-  rval = MBI->tag_get_handle( "phtn_src", moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, phtnSrcTag);
-  rval = MBI->tag_get_handle( "phtn_src2", moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, phtnSrcTag2);
-
-  int idxTagSize;
-  int phtnSrcTagSize;
-  int phtnSrcTagSize2;
-
-  rval = MBI->tag_get_bytes(idxTag, *(&idxTagSize));
-  rval = MBI->tag_get_bytes(phtnSrcTag, *(&phtnSrcTagSize));
-  rval = MBI->tag_get_bytes(phtnSrcTag2, *(&phtnSrcTagSize2));
-
-  std::vector<int> idxData;
-  idxData.resize(ves.size()*idxTagSize/sizeof(int)); 
-
-  std::vector<double> phtnSrcData;
-  phtnSrcData.resize(ves.size()*phtnSrcTagSize/sizeof(double)); 
-
-  std::vector<double> phtnSrcData2;
-  phtnSrcData2.resize(ves.size()*phtnSrcTagSize2/sizeof(double)); 
-
-  rval = MBI->tag_get_data( idxTag, ves, &idxData[0]);
-  rval = MBI->tag_get_data( phtnSrcTag, ves, &phtnSrcData[0]);
-  rval = MBI->tag_get_data( phtnSrcTag2, ves, &phtnSrcData2[0]);
-  
-  int i;
-  for(i=0; i<ves.size(); ++i){
-    std::cout << idxData[i] <<" "<< phtnSrcData[i] <<" "<<phtnSrcData2[2*i]<<" "<< phtnSrcData2[2*i+1] <<" "<< std::endl;
-  }
-  
-}
-
-void Sampling::testtt()
-{
-
-  rval = MBI->get_entities_by_type( 0, MBHEX, ves );
-  rval = MBI->tag_get_handle( "idx", moab::MB_TAG_VARLEN, MB_TYPE_INTEGER, idxTag);
-  std::cout << vampire << std::endl;
-
-}
-
-//std::vector<double> Sampling::pdfFromMesh(char* fileName, char* tagName){
 void Sampling::pdfFromMesh(char* fileName, char* tagName){
 
- MBEntityHandle loaded_file_set;
- // create meshset to load file into
- rval = MBI->create_meshset(MESHSET_SET, loaded_file_set );
- assert( rval == MB_SUCCESS );
- // load file
- rval = MBI->load_file( fileName, &loaded_file_set );
- assert( rval == MB_SUCCESS );
- // get entities
- rval = MBI->get_entities_by_type( 0, MBHEX, ves );
- assert( rval == MB_SUCCESS );
- // get tag handle
+  MBEntityHandle loaded_file_set;
+  // create meshset to load file into
+  rval = MBI->create_meshset(MESHSET_SET, loaded_file_set );
+  assert( rval == MB_SUCCESS );
+  // load file
+  rval = MBI->load_file( fileName, &loaded_file_set );
+  assert( rval == MB_SUCCESS );
+  // get entities
+  rval = MBI->get_entities_by_dimension(loaded_file_set, 3, ves);
+  int num_hex, num_quad;
+
+  rval = MBI->get_number_entities_by_type(loaded_file_set, MBHEX, num_hex);
+  rval = MBI->get_number_entities_by_type(loaded_file_set, MBQUAD, num_quad);
+  if(num_hex = ves.size()) 
+  {
+    ve_type = MBHEX;
+    verts_per_vol = 8;
+  }
+  else if (num_quad = ves.size())
+  {
+    ve_type = MBTET;
+    verts_per_vol = 4;
+  }
+  else exit(1);
+
+  std::cout << "results: "<< ve_type << std::endl;
+ 
+  assert( rval == MB_SUCCESS );
+  // get tag handle
   rval = MBI->tag_get_handle( tagName, moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, phtnSrcTag);
+  // THIS ASSERT FAILS because we do not know number of energy groups a priori.
   //assert( rval == MB_SUCCESS );
-  std::cout<<rval<<std::endl;
   // get tag size
   int phtnSrcTagSize;
   rval = MBI->tag_get_bytes(phtnSrcTag, *(&phtnSrcTagSize));
@@ -169,17 +125,74 @@ void Sampling::pdfFromMesh(char* fileName, char* tagName){
   rval = MBI->tag_get_data( phtnSrcTag, ves, &phtnSrcData[0]);
   assert( rval == MB_SUCCESS );
   
+  std::vector<double> volumes =  find_volumes();
+
   int i, j;
   for(i=0; i<ves.size(); ++i){
     for(j=0; j<tagLen; ++j){
-    phtnSrcData[i*tagLen + j] *=  2.0; //veVol[i];
-    std::cout <<phtnSrcData[i*tagLen+j] << std::endl;
+     phtnSrcData[i*tagLen + j] *=  volumes[i];
     }
   }
 
-  vampire = 20;
 }
 
+std::vector<double> Sampling::find_volumes()
+{
+  std::vector<double> volumes (ves.size());
+  int i;
+  double volume;
+
+   //std::vector<double> coords(3*pow(ves.size()+1,3));
+
+
+    //MBRange verts;
+    //rval = MBI()->get_entities_by_type(0, MBVERTEX, verts);
+    //double x[geom_sets[0].size()];
+    //double y[geom_sets[0].size()];
+    //double z[geom_sets[0].size()];
+
+    //rval = MBI()-> get_coords( verts, &x[0], &y[0], &z[0]);
+    //if(gen::error(MB_SUCCESS!=result,"could not get coordinates of the vertices")) return result;
+
+   //rval = MBI->get_entities_by_type(0, MBVERTEX, verts);
+   //rval = MBI->get_coords(coords, coords.data());
+   //rval = MBI->get_coords(connect.data(), connect.size(), coords.data());
+
+
+  MBRange verts;
+  rval = MBI->get_entities_by_type(0, MBVERTEX, verts);
+  std::vector<double> x (verts.size());
+  std::vector<double> y (verts.size());
+  std::vector<double> z (verts.size());
+  MBI->get_coords(verts, &x[0], &y[0], &z[0]);
+
+
+//std::vector< std::vector< double > > coords ( verts.size(), std::vector<double> (3));
+  std::vector< std::vector< double > > coords;
+
+  for(i=0; i<verts.size(); i++){
+    std::vector< double> row;
+    row.push_back(x[i]);
+    row.push_back(y[i]);
+    row.push_back(z[i]);
+    coords.push_back(row);
+  }
+
+   for(i=0; i<27; i++){
+     std::cout << coords[i][0] << coords[i][1]<< coords[i][2]<<std::endl;
+   }
+
+  double a[3] = {4.4,5.5,6.6};
+ //= {1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8, 9.9, 10.1, 11.1, 12.2, 13.3, 14.4, 15.5, 16.6, 17.7, 18.8};
+  volume = measure(ve_type, 8, a);
+  std::cout << volume << std::endl;
+
+  //for(i=0; i<ves.size(); ++i){
+  //  volumes[i] = MBI->measure(ve_type, verts_per_vol, coords[i]);
+ //` }
+  return volumes;
+  
+}
 
 
 
@@ -207,14 +220,13 @@ int main(int argc, char* argv[])
 
  Sampling& sampling = *Sampling::instance();
  sampling.pdfFromMesh(argv[1], argv[2]);
- sampling.testtt();
 
-  int j;
-  for(i=0; i<sampling.ves.size(); ++i){
-    for(j=0; j<sampling.tagLen; ++j){
-    std::cout << sampling.phtnSrcData[i*sampling.tagLen + j] << std::endl;
-    }
-  }
+//  int j;
+//  for(i=0; i<sampling.ves.size(); ++i){
+//    for(j=0; j<sampling.tagLen; ++j){
+//    std::cout << sampling.phtnSrcData[i*sampling.tagLen + j] << std::endl;
+//    }
+//  }
 
 return 0;
 }

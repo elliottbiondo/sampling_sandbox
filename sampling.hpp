@@ -10,27 +10,28 @@
 #include "moab/Range.hpp"
 #include "moab/Core.hpp"
 #include "moab/GeomUtil.hpp"
-
 #include "MBCore.hpp"
+#include "measure.hpp"
 
 class Sampling
 {
 public:
   static Sampling *instance(MBInterface *mb_impl = NULL);
   ~Sampling();
-  void blash(char* input_filename);
   //functions
-  void testtt();
   //std::vector<double> pdfFromMesh(char* fileName, char* tagName);
   void pdfFromMesh(char* fileName, char* tagName);
+  std::vector<double> find_volumes();
   //variable
-  int vampire;
+  
   MBTag phtnSrcTag;
   int tagLen;
   MBTag idxTag;
   MBRange ves;
   MBErrorCode rval;
   std::vector<double> phtnSrcData;
+  MBEntityType ve_type;
+  int verts_per_vol;
 
 public:
   class AliasTable

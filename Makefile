@@ -1,2 +1,2 @@
 all:
-	g++ -g sampling.cpp -o samp -lMOAB
+	g++ /opt/moab/build/tools/measure.o -g sampling.cpp -I/opt/moab/src/moab-4.6.2/tools/ -o samp -lMOAB
