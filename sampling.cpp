@@ -163,11 +163,9 @@ std::vector<double> Sampling::find_volumes()
   //std::vector<double> z (verts.size());
   //MBI->get_coords(verts, &x[0], &y[0], &z[0]);
   MBErrorCode rval;
-for (MBRange::iterator it = ves.begin(); it != ves.end(); it++) {
+  for (MBRange::iterator it = ves.begin(); it != ves.end(); it++) {
       MBRange adjs;
       rval = MBI->get_adjacencies(&(*it), 1, 0, false, adjs);
-      //adjs.print();
-      //std::cout << adjs.size() << std::endl;
       double coords[24];
       int j;
       rval = MBI->get_coords(adjs, &coords[0]);
@@ -176,10 +174,18 @@ for (MBRange::iterator it = ves.begin(); it != ves.end(); it++) {
       }
       volume = measure(MBHEX, 8, &coords[0]);
       std::cout << "volume " <<volume << std::endl;
-      //std::cout << coords[0] << std::endl;
-      //volumes = measure(ve_type, verts_per_vol, adjs);
-     }
 
+  }
+
+     std::vector<MBEntityHandle> connect;
+     rval = MBI->get_connectivity_by_type(MBHEX, connect);
+
+     for(i=0; i<connect.size(); ++i){
+       double coords[24];
+       rval=MBI->get_coords(&connect[8*i], 8, &coords[0]);
+       volume = measure(MBHEX, 8, &coords[0]);
+      std::cout << "connect volume " <<volume << std::endl;
+     }
 
 /*
 //std::vector< std::vector< double > > coords ( verts.size(), std::vector<double> (3));
