@@ -12,6 +12,7 @@
 #include "moab/GeomUtil.hpp"
 #include "MBCore.hpp"
 #include "measure.hpp"
+#include "MBCartVect.hpp"
 
 class Sampling
 {
@@ -47,6 +48,13 @@ private:
   MBEntityType ve_type;
   int verts_per_vol;
   AliasTable* at;
+  struct vector_points{
+    MBCartVect o_point;
+    MBCartVect x_vec;
+    MBCartVect y_vec;
+    MBCartVect z_vec;
+  };
+  std::vector<vector_points> cart_sampler;
 
 public:
   MBInterface* moab_instance() {return mbImpl;}

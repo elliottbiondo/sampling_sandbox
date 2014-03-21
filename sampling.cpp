@@ -84,13 +84,20 @@ void Sampling::SamplingSetup(char* fileName, char* tag_name){
   at = new AliasTable(pdf);
 }
 
+
+
+
 void Sampling::SampleXYZE(const double* rands, double &x, double &y, double &z, double &E){
   int pdf_idx = at->draw_sample(rands[0], rands[1]);
   int ve_idx = pdf_idx/tag_len;
   int e_idx = pdf_idx % tag_len;
+  
   x = ve_idx;
   y = e_idx;
+  z = 1;
 }
+
+
 
 
 void Sampling::pdfFromMesh(char* fileName, char* tag_name){
@@ -145,6 +152,9 @@ void Sampling::pdfFromMesh(char* fileName, char* tag_name){
 
 }
 
+
+
+
 std::vector<double> Sampling::find_volumes(){
   std::vector<double> volumes (ves.size());
   MBErrorCode rval;
@@ -155,6 +165,26 @@ std::vector<double> Sampling::find_volumes(){
   for(i=0; i<ves.size(); ++i){
     rval=MBI->get_coords(&connect[verts_per_vol*i], verts_per_vol, &coords[0]);
     volumes[i] = measure(ve_type, verts_per_vol, &coords[0]);
+    int j,k;
+    //std::cout << i << std::endl;
+    
+    /*
+    for(k=0; k<verts_per_vol; ++k){
+      for(j=0; j<3; ++j){
+        MBCartVect a(coords[k*3+j]);
+        std::cout << coords[k*3+j] << " ";
+      }
+      std::cout << std::endl;
+    }
+    */
+    if(ve_type == MBHEX){
+      MBCartVect o(coords[0]);
+      MBCartVect x(coords[3]);
+      MBCartVect y(coords[9]);
+      MBCartVect z(coords[12]);
+      vector_points vp = {o, x-o, y-o, z-o};
+      cart_sampler.push_back(vp);
+    }
     //std::cout << volumes[i] << std::endl;
   }
 
@@ -193,13 +223,6 @@ int main(int argc, char* argv[]){
  double x, y, z, E;
  sampling.SampleXYZE(rands, x, y, z, E);
  std::cout << x << y <<std::endl;
-
- // int j;
- // for(i=0; i<sampling.ves.size(); ++i){
- //   for(j=0; j<sampling.tag_len; ++j){
- //   std::cout << sampling.pdf[i*sampling.tag_len + j] << std::endl;
- //   }
- // }
 
 return 0;
 }
