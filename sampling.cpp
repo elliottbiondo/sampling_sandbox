@@ -85,10 +85,10 @@ void Sampling::pdfFromMesh(char* fileName, char* tagName){
   MBEntityHandle loaded_file_set;
   // create meshset to load file into
   rval = MBI->create_meshset(MESHSET_SET, loaded_file_set );
-  assert( rval == MB_SUCCESS );
+  //assert( rval == MB_SUCCESS );
   // load file
   rval = MBI->load_file( fileName, &loaded_file_set );
-  assert( rval == MB_SUCCESS );
+  //assert( rval == MB_SUCCESS );
   // get entities
   rval = MBI->get_entities_by_dimension(loaded_file_set, 3, ves);
   int num_hex, num_quad;
@@ -107,9 +107,7 @@ void Sampling::pdfFromMesh(char* fileName, char* tagName){
   }
   else exit(1);
 
-  std::cout << "results: "<< ve_type << std::endl;
- 
-  assert( rval == MB_SUCCESS );
+  //assert( rval == MB_SUCCESS );
   // get tag handle
   rval = MBI->tag_get_handle( tagName, moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, phtnSrcTag);
   // THIS ASSERT FAILS because we do not know number of energy groups a priori.
@@ -117,13 +115,13 @@ void Sampling::pdfFromMesh(char* fileName, char* tagName){
   // get tag size
   int phtnSrcTagSize;
   rval = MBI->tag_get_bytes(phtnSrcTag, *(&phtnSrcTagSize));
-  assert( rval == MB_SUCCESS );
+  //assert( rval == MB_SUCCESS );
   tagLen = phtnSrcTagSize/sizeof(double);
 
   phtnSrcData.resize(ves.size()*tagLen); 
 
   rval = MBI->tag_get_data( phtnSrcTag, ves, &phtnSrcData[0]);
-  assert( rval == MB_SUCCESS );
+  //assert( rval == MB_SUCCESS );
   
   std::vector<double> volumes =  find_volumes();
 
@@ -144,7 +142,6 @@ std::vector<double> Sampling::find_volumes()
 
    //std::vector<double> coords(3*pow(ves.size()+1,3));
 
-
     //MBRange verts;
     //rval = MBI()->get_entities_by_type(0, MBVERTEX, verts);
     //double x[geom_sets[0].size()];
@@ -158,15 +155,33 @@ std::vector<double> Sampling::find_volumes()
    //rval = MBI->get_coords(coords, coords.data());
    //rval = MBI->get_coords(connect.data(), connect.size(), coords.data());
 
+  //MBRange verts;
+  //rval = MBI->get_entities_by_type(0, MBVERTEX, verts);
+  //rval = MBI->get_adjacencies( ,0, 0, verts);	
+  //std::vector<double> x (verts.size());
+  //std::vector<double> y (verts.size());
+  //std::vector<double> z (verts.size());
+  //MBI->get_coords(verts, &x[0], &y[0], &z[0]);
+  MBErrorCode rval;
+for (MBRange::iterator it = ves.begin(); it != ves.end(); it++) {
+      MBRange adjs;
+      rval = MBI->get_adjacencies(&(*it), 1, 0, false, adjs);
+      //adjs.print();
+      //std::cout << adjs.size() << std::endl;
+      double coords[24];
+      int j;
+      rval = MBI->get_coords(adjs, &coords[0]);
+      for(i=0; i<8; ++i){
+        printf("\n %f, %f, %f,", coords[3*i], coords[3*i+1], coords[3*i+2]);
+      }
+      volume = measure(MBHEX, 8, &coords[0]);
+      std::cout << "volume " <<volume << std::endl;
+      //std::cout << coords[0] << std::endl;
+      //volumes = measure(ve_type, verts_per_vol, adjs);
+     }
 
-  MBRange verts;
-  rval = MBI->get_entities_by_type(0, MBVERTEX, verts);
-  std::vector<double> x (verts.size());
-  std::vector<double> y (verts.size());
-  std::vector<double> z (verts.size());
-  MBI->get_coords(verts, &x[0], &y[0], &z[0]);
 
-
+/*
 //std::vector< std::vector< double > > coords ( verts.size(), std::vector<double> (3));
   std::vector< std::vector< double > > coords;
 
@@ -178,18 +193,39 @@ std::vector<double> Sampling::find_volumes()
     coords.push_back(row);
   }
 
-   for(i=0; i<27; i++){
+   for(i=0; i<verts.size(); i++){
      std::cout << coords[i][0] << coords[i][1]<< coords[i][2]<<std::endl;
    }
 
-  double a[3] = {4.4,5.5,6.6};
- //= {1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8, 9.9, 10.1, 11.1, 12.2, 13.3, 14.4, 15.5, 16.6, 17.7, 18.8};
-  volume = measure(ve_type, 8, a);
-  std::cout << volume << std::endl;
+*/
+  // THIS WORKS
+//  double a[24] = {\
+ 0.000000, 0.000000, 0.000000,\
+ 1.000000, 0.000000, 0.000000,\
+ 0.000000, 1.000000, 0.000000,\
+ 1.000000, 1.000000, 0.000000,\
+ 0.000000, 0.000000, 1.000000,\
+ 1.000000, 0.000000, 1.000000,\
+ 0.000000, 1.000000, 1.000000,\
+ 1.000000, 1.000000, 1.000000};
+  double a[24] = {\
+ 0.000000, 0.000000, 0.000000,\
+ 0.000000, 1.000000, 0.000000,\
+ 0.000000, 1.000000, 1.000000,\
+ 0.000000, 0.000000, 1.000000,\
+ 1.000000, 0.000000, 0.000000,\
+ 1.000000, 1.000000, 0.000000,\
+ 1.000000, 1.000000, 1.000000,\
+ 1.000000, 0.000000, 1.000000};
+  //double a[24] = {0,0,0, 0,2,0, 0,2,2, 0,0,2, 2,0,0, 2,2,0, 2,2,2, 2,0,2};
+  volume = measure(MBHEX, 8, &a[0]);
+  std::cout << "blah " <<volume << std::endl;
 
+  //volume = MBI->measure(ve_type, verts_per_vol, coords[i]);
   //for(i=0; i<ves.size(); ++i){
   //  volumes[i] = MBI->measure(ve_type, verts_per_vol, coords[i]);
- //` }
+ //` }a
+
   return volumes;
   
 }
