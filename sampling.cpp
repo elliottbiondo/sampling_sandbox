@@ -80,6 +80,21 @@ int Sampling::AliasTable::drawSample(double ran1, double ran2){
 }
 
 
+void Sampling::SamplingSetup(char* fileName, char* tagName){
+  pdfFromMesh(fileName, tagName);
+  at = new AliasTable(pdf);
+
+  int samp = at->drawSample(0.3, 0.5);
+  std::cout << samp << std::endl;
+}
+
+int Sampling::SampleXYZE(){
+  int samp = at->drawSample(0.3, 0.5);
+  std::cout << samp << std::endl;
+  return samp;
+}
+
+
 void Sampling::pdfFromMesh(char* fileName, char* tagName){
 
   MBEntityHandle loaded_file_set;
@@ -118,9 +133,9 @@ void Sampling::pdfFromMesh(char* fileName, char* tagName){
   //assert( rval == MB_SUCCESS );
   tagLen = phtnSrcTagSize/sizeof(double);
 
-  phtnSrcData.resize(ves.size()*tagLen); 
+  pdf.resize(ves.size()*tagLen); 
 
-  rval = MBI->tag_get_data( phtnSrcTag, ves, &phtnSrcData[0]);
+  rval = MBI->tag_get_data( phtnSrcTag, ves, &pdf[0]);
   //assert( rval == MB_SUCCESS );
   
   std::vector<double> volumes =  find_volumes();
@@ -128,7 +143,7 @@ void Sampling::pdfFromMesh(char* fileName, char* tagName){
   int i, j;
   for(i=0; i<ves.size(); ++i){
     for(j=0; j<tagLen; ++j){
-     phtnSrcData[i*tagLen + j] *=  volumes[i];
+     pdf[i*tagLen + j] *=  volumes[i];
     }
   }
 
@@ -145,7 +160,7 @@ std::vector<double> Sampling::find_volumes()
   for(i=0; i<ves.size(); ++i){
     rval=MBI->get_coords(&connect[verts_per_vol*i], verts_per_vol, &coords[0]);
     volumes[i] = measure(ve_type, verts_per_vol, &coords[0]);
-    std::cout << volumes[i] << std::endl;
+    //std::cout << volumes[i] << std::endl;
   }
 
   return volumes;
@@ -176,14 +191,16 @@ int main(int argc, char* argv[])
   }
 
  Sampling& sampling = *Sampling::instance();
- sampling.pdfFromMesh(argv[1], argv[2]);
+ sampling.SamplingSetup(argv[1], argv[2]);
+ int sample = sampling.SampleXYZE();
+ std::cout << sample << std::endl;
 
-//  int j;
-//  for(i=0; i<sampling.ves.size(); ++i){
-//    for(j=0; j<sampling.tagLen; ++j){
-//    std::cout << sampling.phtnSrcData[i*sampling.tagLen + j] << std::endl;
-//    }
-//  }
+ // int j;
+ // for(i=0; i<sampling.ves.size(); ++i){
+ //   for(j=0; j<sampling.tagLen; ++j){
+ //   std::cout << sampling.pdf[i*sampling.tagLen + j] << std::endl;
+ //   }
+ // }
 
 return 0;
 }
