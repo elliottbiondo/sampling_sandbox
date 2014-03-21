@@ -55,6 +55,7 @@ private:
     MBCartVect z_vec;
   };
   std::vector<vector_points> cart_sampler;
+  void get_xyz(double &x, double &y, double &z);
 
 public:
   MBInterface* moab_instance() {return mbImpl;}

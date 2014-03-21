@@ -85,18 +85,23 @@ void Sampling::SamplingSetup(char* fileName, char* tag_name){
 }
 
 
-
-
 void Sampling::SampleXYZE(const double* rands, double &x, double &y, double &z, double &E){
   int pdf_idx = at->draw_sample(rands[0], rands[1]);
   int ve_idx = pdf_idx/tag_len;
   int e_idx = pdf_idx % tag_len;
   
+  get_xyz(x,y,z);
   x = ve_idx;
   y = e_idx;
   z = 1;
 }
 
+void Sampling::get_xyz(double &x, double &y, double &z){
+  std::cout << cart_sampler[0].o_point << std::endl;
+  std::cout << cart_sampler[0].x_vec << std::endl;
+  std::cout << cart_sampler[0].y_vec << std::endl;
+  std::cout << cart_sampler[0].z_vec << std::endl;
+}
 
 
 
@@ -152,9 +157,6 @@ void Sampling::pdfFromMesh(char* fileName, char* tag_name){
 
 }
 
-
-
-
 std::vector<double> Sampling::find_volumes(){
   std::vector<double> volumes (ves.size());
   MBErrorCode rval;
@@ -168,20 +170,20 @@ std::vector<double> Sampling::find_volumes(){
     int j,k;
     //std::cout << i << std::endl;
     
-    /*
-    for(k=0; k<verts_per_vol; ++k){
-      for(j=0; j<3; ++j){
-        MBCartVect a(coords[k*3+j]);
-        std::cout << coords[k*3+j] << " ";
-      }
-      std::cout << std::endl;
-    }
-    */
+    //for(k=0; k<verts_per_vol; ++k){
+    //  for(j=0; j<3; ++j){
+        //MBCartVect a(coords[k*3+j]);
+    //    std::cout << coords[k*3+j] << " ";
+    //  }
+     // std::cout << std::endl;
+    //}
     if(ve_type == MBHEX){
-      MBCartVect o(coords[0]);
-      MBCartVect x(coords[3]);
-      MBCartVect y(coords[9]);
-      MBCartVect z(coords[12]);
+     
+      MBCartVect o(coords[0], coords[1], coords[2]);
+      MBCartVect x(coords[3], coords[4], coords[5]);
+      MBCartVect y(coords[9], coords[10], coords[11]);
+      MBCartVect z(coords[12], coords[13], coords[14]);
+      //std::cout << o << x << y << z <<std::endl;
       vector_points vp = {o, x-o, y-o, z-o};
       cart_sampler.push_back(vp);
     }
