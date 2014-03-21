@@ -19,16 +19,8 @@ public:
   static Sampling *instance(MBInterface *mb_impl = NULL);
   ~Sampling();
   void SamplingSetup(char* fileName, char* tagName);
-  int SampleXYZE();
-  //functions
-  //std::vector<double> pdfFromMesh(char* fileName, char* tagName);
+  void SampleXYZE(const double* rands, double &x, double &y, double &z, double &E);
 
-private:
-  void pdfFromMesh(char* fileName, char* tagName);
-  std::vector<double> find_volumes();
-  //variable
-
-public:
   class AliasTable
   {
   private:
@@ -39,14 +31,16 @@ public:
     friend class Sampling;
   
   public:
-    int drawSample(double ran1, double ran2);
+    int draw_sample(double ran1, double ran2);
     AliasTable(std::vector<double> p);
   };
-  
+
 private:
-  MBTag phtnSrcTag;
-  int tagLen;
-  MBTag idxTag;
+  //functions
+  void pdfFromMesh(char* fileName, char* tagName);
+  std::vector<double> find_volumes();
+  //variable
+  int tag_len;
   MBRange ves;
   MBErrorCode rval;
   std::vector<double> pdf;

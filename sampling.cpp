@@ -19,8 +19,7 @@ void Sampling::create_instance(MBInterface *mb_impl)
 Sampling::Sampling(MBInterface *mb_impl)
    : mbImpl(mb_impl){}
 
-Sampling::AliasTable::AliasTable(std::vector<double> p)
-{
+Sampling::AliasTable::AliasTable(std::vector<double> p){
     n = p.size();
     prob.resize(n);
     alias.resize(n);
@@ -74,28 +73,27 @@ Sampling::AliasTable::AliasTable(std::vector<double> p)
         prob[ S[--nS] ] = 1;
 }
 
-int Sampling::AliasTable::drawSample(double ran1, double ran2){
-    int i = (int) n * ran1;
-    return ran2 < prob[i] ? i : alias[i];
+int Sampling::AliasTable::draw_sample(double rand1, double rand2){
+    int i = (int) n * rand1;
+    return rand2 < prob[i] ? i : alias[i];
 }
 
 
-void Sampling::SamplingSetup(char* fileName, char* tagName){
-  pdfFromMesh(fileName, tagName);
+void Sampling::SamplingSetup(char* fileName, char* tag_name){
+  pdfFromMesh(fileName, tag_name);
   at = new AliasTable(pdf);
-
-  int samp = at->drawSample(0.3, 0.5);
-  std::cout << samp << std::endl;
 }
 
-int Sampling::SampleXYZE(){
-  int samp = at->drawSample(0.3, 0.5);
-  std::cout << samp << std::endl;
-  return samp;
+void Sampling::SampleXYZE(const double* rands, double &x, double &y, double &z, double &E){
+  int pdf_idx = at->draw_sample(rands[0], rands[1]);
+  int ve_idx = pdf_idx/tag_len;
+  int e_idx = pdf_idx % tag_len;
+  x = ve_idx;
+  y = e_idx;
 }
 
 
-void Sampling::pdfFromMesh(char* fileName, char* tagName){
+void Sampling::pdfFromMesh(char* fileName, char* tag_name){
 
   MBEntityHandle loaded_file_set;
   // create meshset to load file into
@@ -110,13 +108,10 @@ void Sampling::pdfFromMesh(char* fileName, char* tagName){
 
   rval = MBI->get_number_entities_by_type(loaded_file_set, MBHEX, num_hex);
   rval = MBI->get_number_entities_by_type(loaded_file_set, MBTET, num_tet);
-  if(num_hex == ves.size()) 
-  {
+  if(num_hex == ves.size()){
     ve_type = MBHEX;
     verts_per_vol = 8;
-  }
-  else if (num_tet == ves.size())
-  {
+  } else if (num_tet == ves.size()){
     ve_type = MBTET;
     verts_per_vol = 4;
   }
@@ -124,33 +119,33 @@ void Sampling::pdfFromMesh(char* fileName, char* tagName){
 
   //assert( rval == MB_SUCCESS );
   // get tag handle
-  rval = MBI->tag_get_handle( tagName, moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, phtnSrcTag);
+  MBTag phtn_src_tag;
+  rval = MBI->tag_get_handle(tag_name, moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, phtn_src_tag);
   // THIS ASSERT FAILS because we do not know number of energy groups a priori.
   //assert( rval == MB_SUCCESS );
   // get tag size
-  int phtnSrcTagSize;
-  rval = MBI->tag_get_bytes(phtnSrcTag, *(&phtnSrcTagSize));
+  int tag_size;
+  rval = MBI->tag_get_bytes(phtn_src_tag, *(&tag_size));
   //assert( rval == MB_SUCCESS );
-  tagLen = phtnSrcTagSize/sizeof(double);
+  tag_len = tag_size/sizeof(double);
 
-  pdf.resize(ves.size()*tagLen); 
+  pdf.resize(ves.size()*tag_len); 
 
-  rval = MBI->tag_get_data( phtnSrcTag, ves, &pdf[0]);
+  rval = MBI->tag_get_data( phtn_src_tag, ves, &pdf[0]);
   //assert( rval == MB_SUCCESS );
   
   std::vector<double> volumes =  find_volumes();
 
   int i, j;
   for(i=0; i<ves.size(); ++i){
-    for(j=0; j<tagLen; ++j){
-     pdf[i*tagLen + j] *=  volumes[i];
+    for(j=0; j<tag_len; ++j){
+     pdf[i*tag_len + j] *=  volumes[i];
     }
   }
 
 }
 
-std::vector<double> Sampling::find_volumes()
-{
+std::vector<double> Sampling::find_volumes(){
   std::vector<double> volumes (ves.size());
   MBErrorCode rval;
   std::vector<MBEntityHandle> connect;
@@ -168,8 +163,8 @@ std::vector<double> Sampling::find_volumes()
 
 
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]){
+
   double my_array[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
   std::vector<double> my_vec(&my_array[0], &my_array[0]+5);
 
@@ -182,7 +177,7 @@ int main(int argc, char* argv[])
   for(i=0; i<N; i++){
      rand1 = (double) rand()/RAND_MAX;
      rand2 = (double) rand()/RAND_MAX;
-     answers[myTable.drawSample(rand1, rand2)]++;
+     answers[myTable.draw_sample(rand1, rand2)]++;
   }
 
   printf("bin |  prob  | expected prob\n");
@@ -191,14 +186,18 @@ int main(int argc, char* argv[])
   }
 
  Sampling& sampling = *Sampling::instance();
+
  sampling.SamplingSetup(argv[1], argv[2]);
- int sample = sampling.SampleXYZE();
- std::cout << sample << std::endl;
+
+ double rands[6] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6};
+ double x, y, z, E;
+ sampling.SampleXYZE(rands, x, y, z, E);
+ std::cout << x << y <<std::endl;
 
  // int j;
  // for(i=0; i<sampling.ves.size(); ++i){
- //   for(j=0; j<sampling.tagLen; ++j){
- //   std::cout << sampling.pdf[i*sampling.tagLen + j] << std::endl;
+ //   for(j=0; j<sampling.tag_len; ++j){
+ //   std::cout << sampling.pdf[i*sampling.tag_len + j] << std::endl;
  //   }
  // }
 
