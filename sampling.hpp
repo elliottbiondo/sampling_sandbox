@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <iostream>
+#include <fstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
@@ -20,7 +21,7 @@ public:
   static Sampling *instance(MBInterface *mb_impl = NULL);
   ~Sampling();
   void SamplingSetup(char* fileName, char* tagName);
-  void SampleXYZE(const double* rands, double &x, double &y, double &z, double &E);
+  void SampleXYZE(double* rands, double &x, double &y, double &z, double &E);
 
   class AliasTable
   {
@@ -55,7 +56,7 @@ private:
     MBCartVect z_vec;
   };
   std::vector<vector_points> cart_sampler;
-  void get_xyz(double &x, double &y, double &z);
+  void get_xyz(int ve_idx, double* rands, double &x, double &y, double &z);
 
 public:
   MBInterface* moab_instance() {return mbImpl;}

@@ -85,24 +85,26 @@ void Sampling::SamplingSetup(char* fileName, char* tag_name){
 }
 
 
-void Sampling::SampleXYZE(const double* rands, double &x, double &y, double &z, double &E){
+void Sampling::SampleXYZE(double* rands, double &x, double &y, double &z, double &E){
   int pdf_idx = at->draw_sample(rands[0], rands[1]);
   int ve_idx = pdf_idx/tag_len;
   int e_idx = pdf_idx % tag_len;
   
-  get_xyz(x,y,z);
-  x = ve_idx;
-  y = e_idx;
+  get_xyz(ve_idx, &rands[2],x,y,z);
+}
+
+void Sampling::get_xyz(int ve_idx, double* rands, double &x, double &y, double &z){
+
+  MBCartVect a = rands[0]*cart_sampler[ve_idx].x_vec + \
+                 rands[1]*cart_sampler[ve_idx].y_vec + \
+                 rands[2]*cart_sampler[ve_idx].z_vec + \
+                 cart_sampler[ve_idx].o_point;
   z = 1;
-}
-
-void Sampling::get_xyz(double &x, double &y, double &z){
-  std::cout << cart_sampler[0].o_point << std::endl;
-  std::cout << cart_sampler[0].x_vec << std::endl;
-  std::cout << cart_sampler[0].y_vec << std::endl;
-  std::cout << cart_sampler[0].z_vec << std::endl;
-}
-
+  x = a[0];
+  y = a[1];
+  z = a[2];
+}  
+ 
 
 
 void Sampling::pdfFromMesh(char* fileName, char* tag_name){
@@ -204,7 +206,7 @@ int main(int argc, char* argv[]){
 
   int answers[] = {0, 0, 0, 0, 0};
   int N = 1000000;
-  int i = 0;
+  int i, j;
   double rand1, rand2;
   for(i=0; i<N; i++){
      rand1 = (double) rand()/RAND_MAX;
@@ -221,10 +223,19 @@ int main(int argc, char* argv[]){
 
  sampling.SamplingSetup(argv[1], argv[2]);
 
- double rands[6] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6};
+ //double rands[6] = {0.7, 0.1, 0.3, 0.4, 0.5, 0.6};
+ double rands[6];
  double x, y, z, E;
- sampling.SampleXYZE(rands, x, y, z, E);
- std::cout << x << y <<std::endl;
+ //sampling.SampleXYZE(rands, x, y, z, E);
+  std::ofstream myfile;
+  myfile.open ("cart.out");
+ for(i=0; i<5000; i++){
+   for(j=0; j<6; j++){
+     rands[j] = (double) rand()/RAND_MAX;
+   }
+   sampling.SampleXYZE(rands, x,y,z,E);
+   myfile << x <<" "<< y <<" "<<z<< std::endl;
+ }
 
 return 0;
 }
