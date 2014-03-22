@@ -16,8 +16,8 @@ with open("unstr.out", 'r') as f:
    for line in f.readlines():
        a.append([float(x) for x in line.split()])
 
-p = np.array(a) 
-ax.scatter(p[:,0],p[:,1],p[:,2])
+p = np.array(a)
+ax.scatter(p[:,0],p[:,1],p[:,2], c=p[:,3])
 
 plt.draw()
 

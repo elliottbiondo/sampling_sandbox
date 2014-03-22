@@ -79,9 +79,100 @@ int Sampling::AliasTable::draw_sample(double rand1, double rand2){
 }
 
 
-void Sampling::SamplingSetup(char* fileName, char* tag_name){
-  pdfFromMesh(fileName, tag_name);
+void Sampling::SamplingSetup(char* fileName, char* phtn_src_tag_name, char* e_bounds_tag_name){
+  MBErrorCode rval;
+
+
+  MBEntityHandle loaded_file_set;
+  // create meshset to load file into
+  rval = MBI->create_meshset(MESHSET_SET, loaded_file_set );
+  //assert( rval == MB_SUCCESS );
+  // load file
+  rval = MBI->load_file( fileName, &loaded_file_set );
+  //assert( rval == MB_SUCCESS );
+  // get entities
+  rval = MBI->get_entities_by_dimension(loaded_file_set, 3, ves);
+
+  int num_hex, num_tet;
+  rval = MBI->get_number_entities_by_type(loaded_file_set, MBHEX, num_hex);
+  rval = MBI->get_number_entities_by_type(loaded_file_set, MBTET, num_tet);
+  if(num_hex == ves.size()){
+    ve_type = MBHEX;
+    verts_per_vol = 8;
+  } else if (num_tet == ves.size()){
+    ve_type = MBTET;
+    verts_per_vol = 4;
+  }
+  else exit(1);
+
+
+  std::vector<double> volumes =  find_volumes();
+
+
+  //assert( rval == MB_SUCCESS );
+  // get tag handle
+  MBTag phtn_src_tag;
+  rval = MBI->tag_get_handle(phtn_src_tag_name, moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, phtn_src_tag);
+  // THIS ASSERT FAILS because we do not know number of energy groups a priori.
+  //assert( rval == MB_SUCCESS );
+  // get tag size
+  int tag_size;
+  rval = MBI->tag_get_bytes(phtn_src_tag, *(&tag_size));
+  //assert( rval == MB_SUCCESS );
+  tag_len = tag_size/sizeof(double);
+
+  std::vector<double> pdf(ves.size()*tag_len); 
+  rval = MBI->tag_get_data( phtn_src_tag, ves, &pdf[0]);
+  //assert( rval == MB_SUCCESS );
+
+  ///
+  MBTag e_tag;
+  MBEntityHandle rootSet;
+  std::cout << e_bounds_tag_name << std::endl;
+  //rval = MBI->tag_get_handle(e_bounds_tag_name, tag_size, MB_TYPE_DOUBLE, e_tag, moab::MB_TAG_ANY);
+  //rval = MBI->tag_get_data(e_tag, &rootSet, tag_size, &e_bounds[0]);
+  //std::cout << e_bounds[0] << e_bounds[1] << e_bounds[2] << std::endl;
+
+  //
+  
+
+  int i, j;
+  for(i=0; i<ves.size(); ++i){
+    for(j=0; j<tag_len; ++j){
+     pdf[i*tag_len + j] *=  volumes[i];
+    }
+  }
   at = new AliasTable(pdf);
+}
+
+std::vector<double> Sampling::find_volumes(){
+  std::vector<double> volumes (ves.size());
+  MBErrorCode rval;
+  std::vector<MBEntityHandle> connect;
+  rval = MBI->get_connectivity_by_type(ve_type, connect);
+  double coords[verts_per_vol*3];
+  int i;
+  for(i=0; i<ves.size(); ++i){
+    rval=MBI->get_coords(&connect[verts_per_vol*i], verts_per_vol, &coords[0]);
+    volumes[i] = measure(ve_type, verts_per_vol, &coords[0]);
+
+    if(ve_type == MBHEX){
+      MBCartVect o(coords[0], coords[1], coords[2]);
+      MBCartVect x(coords[3], coords[4], coords[5]);
+      MBCartVect y(coords[9], coords[10], coords[11]);
+      MBCartVect z(coords[12], coords[13], coords[14]);
+      vector_points vp = {o, x-o, y-o, z-o};
+      cart_sampler.push_back(vp);
+   }else if (ve_type == MBTET){
+      MBCartVect o(coords[0], coords[1], coords[2]);
+      MBCartVect x(coords[3], coords[4], coords[5]);
+      MBCartVect y(coords[6], coords[7], coords[8]);
+      MBCartVect z(coords[9], coords[10], coords[11]);
+      vector_points vp = {o, x-o, y-o, z-o};
+      cart_sampler.push_back(vp);
+    }
+  }
+  return volumes;
 }
 
 
@@ -98,8 +189,8 @@ void Sampling::SampleXYZE(double* rands, double &x, double &y, double &z, double
     double u = rands[4];
 
     if(s + t > 1){
-      s = 1.0-s;
-      t = 1.0-t;
+      s = 1.0 - s;
+      t = 1.0 - t;
     }
     
     if(s + t + u > 1){
@@ -114,8 +205,9 @@ void Sampling::SampleXYZE(double* rands, double &x, double &y, double &z, double
       }
     }
     double new_rands[3] = {s, t, u};
-    get_xyz(ve_idx, new_rands,x,y,z);
+    get_xyz(ve_idx, new_rands, x, y, z);
   }
+  get_E(e_idx, &rands[5], E);
 }
 
 void Sampling::get_xyz(int ve_idx, double* rands, double &x, double &y, double &z){
@@ -124,109 +216,20 @@ void Sampling::get_xyz(int ve_idx, double* rands, double &x, double &y, double &
                  rands[1]*cart_sampler[ve_idx].y_vec + \
                  rands[2]*cart_sampler[ve_idx].z_vec + \
                  cart_sampler[ve_idx].o_point;
-  z = 1;
   x = a[0];
   y = a[1];
   z = a[2];
-}  
- 
-
-
-void Sampling::pdfFromMesh(char* fileName, char* tag_name){
-
-  MBEntityHandle loaded_file_set;
-  // create meshset to load file into
-  rval = MBI->create_meshset(MESHSET_SET, loaded_file_set );
-  //assert( rval == MB_SUCCESS );
-  // load file
-  rval = MBI->load_file( fileName, &loaded_file_set );
-  //assert( rval == MB_SUCCESS );
-  // get entities
-  rval = MBI->get_entities_by_dimension(loaded_file_set, 3, ves);
-  int num_hex, num_tet;
-
-  rval = MBI->get_number_entities_by_type(loaded_file_set, MBHEX, num_hex);
-  rval = MBI->get_number_entities_by_type(loaded_file_set, MBTET, num_tet);
-  if(num_hex == ves.size()){
-    ve_type = MBHEX;
-    verts_per_vol = 8;
-  } else if (num_tet == ves.size()){
-    ve_type = MBTET;
-    verts_per_vol = 4;
-  }
-  else exit(1);
-
-  //assert( rval == MB_SUCCESS );
-  // get tag handle
-  MBTag phtn_src_tag;
-  rval = MBI->tag_get_handle(tag_name, moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, phtn_src_tag);
-  // THIS ASSERT FAILS because we do not know number of energy groups a priori.
-  //assert( rval == MB_SUCCESS );
-  // get tag size
-  int tag_size;
-  rval = MBI->tag_get_bytes(phtn_src_tag, *(&tag_size));
-  //assert( rval == MB_SUCCESS );
-  tag_len = tag_size/sizeof(double);
-
-  pdf.resize(ves.size()*tag_len); 
-
-  rval = MBI->tag_get_data( phtn_src_tag, ves, &pdf[0]);
-  //assert( rval == MB_SUCCESS );
-  
-  std::vector<double> volumes =  find_volumes();
-
-  int i, j;
-  for(i=0; i<ves.size(); ++i){
-    for(j=0; j<tag_len; ++j){
-     pdf[i*tag_len + j] *=  volumes[i];
-    }
-  }
-
 }
 
-std::vector<double> Sampling::find_volumes(){
-  std::vector<double> volumes (ves.size());
-  MBErrorCode rval;
-  std::vector<MBEntityHandle> connect;
-  rval = MBI->get_connectivity_by_type(ve_type, connect);
-  double coords[verts_per_vol*3];
-  int i;
-  for(i=0; i<ves.size(); ++i){
-    rval=MBI->get_coords(&connect[verts_per_vol*i], verts_per_vol, &coords[0]);
-    volumes[i] = measure(ve_type, verts_per_vol, &coords[0]);
-    int j,k;
-    //std::cout << i << std::endl;
-    
-    //for(k=0; k<verts_per_vol; ++k){
-    //  for(j=0; j<3; ++j){
-        //MBCartVect a(coords[k*3+j]);
-    //    std::cout << coords[k*3+j] << " ";
-    //  }
-     // std::cout << std::endl;
-    //}
-    if(ve_type == MBHEX){
-      MBCartVect o(coords[0], coords[1], coords[2]);
-      MBCartVect x(coords[3], coords[4], coords[5]);
-      MBCartVect y(coords[9], coords[10], coords[11]);
-      MBCartVect z(coords[12], coords[13], coords[14]);
-      vector_points vp = {o, x-o, y-o, z-o};
-      cart_sampler.push_back(vp);
-      //std::cout << o << x << y << z <<std::endl;
-   }else if (ve_type == MBTET){
-      MBCartVect o(coords[0], coords[1], coords[2]);
-      MBCartVect x(coords[3], coords[4], coords[5]);
-      MBCartVect y(coords[6], coords[7], coords[8]);
-      MBCartVect z(coords[9], coords[10], coords[11]);
-      vector_points vp = {o, x-o, y-o, z-o};
-      cart_sampler.push_back(vp);
-    }
-    //std::cout << volumes[i] << std::endl;
-  }
+void Sampling::get_E(int e_idx, double* rand, double &E){
+   e_bounds.push_back(1.1);
+   e_bounds.push_back(1.2);
+   e_bounds.push_back(1.3);
+   double e_min = e_bounds[e_idx];
+   double e_max = e_bounds[e_idx + 1];
+   E = rand[0] * (e_max - e_min) + e_min;
 
-  return volumes;
 }
-
-
 
 int main(int argc, char* argv[]){
 
@@ -250,10 +253,10 @@ int main(int argc, char* argv[]){
   for(i=0; i<5; i++){
     printf("%i    %f   %f \n", i+1, (double) answers[i]/N, (double) (i+1)/15.0);
   }
-  */
+ / */
 
  Sampling& sampling = *Sampling::instance();
- sampling.SamplingSetup(argv[1], argv[2]);
+ sampling.SamplingSetup(argv[1], argv[2], argv[3]);
 
  double rands[6];
  double x, y, z, E;
@@ -265,7 +268,7 @@ int main(int argc, char* argv[]){
      rands[j] = (double) rand()/RAND_MAX;
    }
    sampling.SampleXYZE(rands, x, y, z, E);
-   myfile << x <<" "<< y <<" "<<z<< std::endl;
+   myfile << x <<" "<< y <<" "<<z<< " "<< E <<std::endl;
  }
 
 return 0;
