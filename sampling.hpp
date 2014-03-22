@@ -19,10 +19,31 @@ class Sampling
 {
 public:
   static Sampling *instance(MBInterface *mb_impl = NULL);
+  MBInterface* moab_instance() {return mbImpl;}
   ~Sampling();
   void SamplingSetup(char* fileName, char* tagName);
   void SampleXYZE(double* rands, double &x, double &y, double &z, double &E);
 
+
+private:
+  //functions
+  void pdfFromMesh(char* fileName, char* tagName);
+  std::vector<double> find_volumes();
+  //variable
+  int tag_len;
+  MBRange ves;
+  MBErrorCode rval;
+  std::vector<double> pdf;
+  MBEntityType ve_type;
+  int verts_per_vol;
+  struct vector_points{
+    MBCartVect o_point;
+    MBCartVect x_vec;
+    MBCartVect y_vec;
+    MBCartVect z_vec;
+  };
+  std::vector<vector_points> cart_sampler;
+  void get_xyz(int ve_idx, double* rands, double &x, double &y, double &z);
   class AliasTable
   {
   private:
@@ -36,30 +57,8 @@ public:
     int draw_sample(double ran1, double ran2);
     AliasTable(std::vector<double> p);
   };
-
-private:
-  //functions
-  void pdfFromMesh(char* fileName, char* tagName);
-  std::vector<double> find_volumes();
-  //variable
-  int tag_len;
-  MBRange ves;
-  MBErrorCode rval;
-  std::vector<double> pdf;
-  MBEntityType ve_type;
-  int verts_per_vol;
   AliasTable* at;
-  struct vector_points{
-    MBCartVect o_point;
-    MBCartVect x_vec;
-    MBCartVect y_vec;
-    MBCartVect z_vec;
-  };
-  std::vector<vector_points> cart_sampler;
-  void get_xyz(int ve_idx, double* rands, double &x, double &y, double &z);
 
-public:
-  MBInterface* moab_instance() {return mbImpl;}
 
 private:
   Sampling(MBInterface *mb_impl);

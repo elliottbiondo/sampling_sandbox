@@ -12,7 +12,7 @@ ax = plt.axes(projection='3d')
 #y = z * np.cos(20 * z)
 
 a=[]
-with open("cart.out", 'r') as f:
+with open("unstr.out", 'r') as f:
    for line in f.readlines():
        a.append([float(x) for x in line.split()])
 

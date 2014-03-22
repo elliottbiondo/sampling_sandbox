@@ -90,7 +90,32 @@ void Sampling::SampleXYZE(double* rands, double &x, double &y, double &z, double
   int ve_idx = pdf_idx/tag_len;
   int e_idx = pdf_idx % tag_len;
   
-  get_xyz(ve_idx, &rands[2],x,y,z);
+  if(ve_type == MBHEX){
+    get_xyz(ve_idx, &rands[2],x,y,z);
+  } else if (ve_type == MBTET){
+    double s = rands[2];
+    double t = rands[3];
+    double u = rands[4];
+
+    if(s + t > 1){
+      s = 1.0-s;
+      t = 1.0-t;
+    }
+    
+    if(s + t + u > 1){
+      if(t + u > 1){
+        double old_t = u;
+        t = 1.0 - u;
+        u = 1.0 - s - old_t;
+      }else if (t + u <= 1){
+        double old_s = s;
+        s = 1.0 - t - u;
+        u = old_s + t + u - 1;
+      }
+    }
+    double new_rands[3] = {s, t, u};
+    get_xyz(ve_idx, new_rands,x,y,z);
+  }
 }
 
 void Sampling::get_xyz(int ve_idx, double* rands, double &x, double &y, double &z){
@@ -180,12 +205,18 @@ std::vector<double> Sampling::find_volumes(){
      // std::cout << std::endl;
     //}
     if(ve_type == MBHEX){
-     
       MBCartVect o(coords[0], coords[1], coords[2]);
       MBCartVect x(coords[3], coords[4], coords[5]);
       MBCartVect y(coords[9], coords[10], coords[11]);
       MBCartVect z(coords[12], coords[13], coords[14]);
+      vector_points vp = {o, x-o, y-o, z-o};
+      cart_sampler.push_back(vp);
       //std::cout << o << x << y << z <<std::endl;
+   }else if (ve_type == MBTET){
+      MBCartVect o(coords[0], coords[1], coords[2]);
+      MBCartVect x(coords[3], coords[4], coords[5]);
+      MBCartVect y(coords[6], coords[7], coords[8]);
+      MBCartVect z(coords[9], coords[10], coords[11]);
       vector_points vp = {o, x-o, y-o, z-o};
       cart_sampler.push_back(vp);
     }
@@ -199,6 +230,8 @@ std::vector<double> Sampling::find_volumes(){
 
 int main(int argc, char* argv[]){
 
+  int i, j;
+  /* Working alias table if you make it public again.
   double my_array[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
   std::vector<double> my_vec(&my_array[0], &my_array[0]+5);
 
@@ -206,7 +239,6 @@ int main(int argc, char* argv[]){
 
   int answers[] = {0, 0, 0, 0, 0};
   int N = 1000000;
-  int i, j;
   double rand1, rand2;
   for(i=0; i<N; i++){
      rand1 = (double) rand()/RAND_MAX;
@@ -218,22 +250,21 @@ int main(int argc, char* argv[]){
   for(i=0; i<5; i++){
     printf("%i    %f   %f \n", i+1, (double) answers[i]/N, (double) (i+1)/15.0);
   }
+  */
 
  Sampling& sampling = *Sampling::instance();
-
  sampling.SamplingSetup(argv[1], argv[2]);
 
- //double rands[6] = {0.7, 0.1, 0.3, 0.4, 0.5, 0.6};
  double rands[6];
  double x, y, z, E;
  //sampling.SampleXYZE(rands, x, y, z, E);
   std::ofstream myfile;
-  myfile.open ("cart.out");
+  myfile.open ("unstr.out");
  for(i=0; i<5000; i++){
    for(j=0; j<6; j++){
      rands[j] = (double) rand()/RAND_MAX;
    }
-   sampling.SampleXYZE(rands, x,y,z,E);
+   sampling.SampleXYZE(rands, x, y, z, E);
    myfile << x <<" "<< y <<" "<<z<< std::endl;
  }
 
