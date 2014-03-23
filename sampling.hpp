@@ -17,7 +17,7 @@ public:
   MBInterface* moab_instance() {return mbImpl;}
   ~Sampling();
   void SamplingSetup(char* fileName, char* phtn_src_tag_name, char* e_bounds_tag_name);
-  void SampleXYZE(double* rands, double &x, double &y, double &z, double &E);
+  void SampleXYZE(double* rands, double &x, double &y, double &z, double &e, double &w);
 
 
 private:
@@ -37,7 +37,7 @@ private:
   };
   std::vector<vector_points> cart_sampler;
   void get_xyz(int ve_idx, double* rands, double &x, double &y, double &z);
-  void get_E(int e_idx, double* rand, double &E);
+  void get_e(int e_idx, double* rand, double &e);
   class AliasTable
   {
   private:

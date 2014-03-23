@@ -25,50 +25,39 @@ Sampling::AliasTable::AliasTable(std::vector<double> p){
     alias.resize(n);
     std::vector<double> S(n);
     std::vector<double> L(n);
-    double sum = 0;
     int i, a, g;
 
-    // normalize
-    for ( i=0; i<n; ++i ) {
-        if( p[i]<0 ) {
-            fprintf( stderr, "ransampl: invalid probability p[%i]<0\n", i );
-        }
-        sum += p[i];
-    }
-    if ( !sum ) {
-        fprintf( stderr, "ransampl: no nonzero probability\n" );
-    }
-    for ( i=0; i<n; ++i )
-        p[i] = (p[i] * n / sum);
+    for(i=0; i<n; ++i) 
+      p[i] *= n;
 
     // Set separate index lists for small and large probabilities:
     int nS = 0;
     int nL = 0;
-    for ( i=n-1; i>=0; --i ) {
+    for(i=n-1; i>=0; --i) {
         // at variance from Schwarz, we revert the index order
-        if ( p[i]<1 )
+        if(p[i] < 1)
             S[nS++] = i;
         else
             L[nL++] = i;
     }
 
     // Work through index lists
-    while ( nS && nL ) {
+    while(nS && nL){
         a = S[--nS]; // Schwarz's l
         g = L[--nL]; // Schwarz's g
         prob[a] = p[a];
         alias[a] = g;
         p[g] = p[g] + p[a] - 1;
-        if ( p[g] < 1 )
+        if (p[g] < 1)
             S[nS++] = g;
         else
             L[nL++] = g;
     }
 
-    while ( nL )
-        prob[ L[--nL] ] = 1;
+    while(nL)
+        prob[L[--nL]] = 1;
 
-    while ( nS )
+    while(nS)
         // can only happen through numeric instability
         prob[ S[--nS] ] = 1;
 }
@@ -81,7 +70,6 @@ int Sampling::AliasTable::draw_sample(double rand1, double rand2){
 
 void Sampling::SamplingSetup(char* fileName, char* phtn_src_tag_name, char* e_bounds_tag_name){
   MBErrorCode rval;
-
 
   MBEntityHandle loaded_file_set;
   // create meshset to load file into
@@ -125,16 +113,18 @@ void Sampling::SamplingSetup(char* fileName, char* phtn_src_tag_name, char* e_bo
   rval = MBI->tag_get_data( phtn_src_tag, ves, &pdf[0]);
   //assert( rval == MB_SUCCESS );
 
-  ///
+  /*
   MBTag e_tag;
-  MBEntityHandle rootSet;
   std::cout << e_bounds_tag_name << std::endl;
-  //rval = MBI->tag_get_handle(e_bounds_tag_name, tag_size, MB_TYPE_DOUBLE, e_tag, moab::MB_TAG_ANY);
-  //rval = MBI->tag_get_data(e_tag, &rootSet, tag_size, &e_bounds[0]);
+  rval = MBI->tag_get_handle(e_bounds_tag_name, 3, MB_TYPE_DOUBLE, e_tag);
+  std::cout << rval << std::endl;
+  assert(rval == MB_SUCCESS);
+  rval = MBI->tag_get_data(e_tag, &loaded_file_set, 1, &e_bounds[0]);
+  std::cout << rval << std::endl;
+  */
+  //assert(rval == MB_SUCCESS);
+//  std::cout << e_bounds[0] << std::endl;
   //std::cout << e_bounds[0] << e_bounds[1] << e_bounds[2] << std::endl;
-
-  //
-  
 
   int i, j;
   for(i=0; i<ves.size(); ++i){
@@ -176,11 +166,13 @@ std::vector<double> Sampling::find_volumes(){
 }
 
 
-void Sampling::SampleXYZE(double* rands, double &x, double &y, double &z, double &E){
+void Sampling::SampleXYZE(double* rands, double &x, double &y, double &z, double &e, double &w){
+  // get indices
   int pdf_idx = at->draw_sample(rands[0], rands[1]);
   int ve_idx = pdf_idx/tag_len;
   int e_idx = pdf_idx % tag_len;
   
+  // get x, y, z
   if(ve_type == MBHEX){
     get_xyz(ve_idx, &rands[2],x,y,z);
   } else if (ve_type == MBTET){
@@ -207,7 +199,9 @@ void Sampling::SampleXYZE(double* rands, double &x, double &y, double &z, double
     double new_rands[3] = {s, t, u};
     get_xyz(ve_idx, new_rands, x, y, z);
   }
-  get_E(e_idx, &rands[5], E);
+
+  get_e(e_idx, &rands[5], e);
+  w = 1.0;
 }
 
 void Sampling::get_xyz(int ve_idx, double* rands, double &x, double &y, double &z){
@@ -221,13 +215,13 @@ void Sampling::get_xyz(int ve_idx, double* rands, double &x, double &y, double &
   z = a[2];
 }
 
-void Sampling::get_E(int e_idx, double* rand, double &E){
+void Sampling::get_e(int e_idx, double* rand, double &e){
    e_bounds.push_back(1.1);
    e_bounds.push_back(1.2);
    e_bounds.push_back(1.3);
    double e_min = e_bounds[e_idx];
    double e_max = e_bounds[e_idx + 1];
-   E = rand[0] * (e_max - e_min) + e_min;
+   e = rand[0] * (e_max - e_min) + e_min;
 
 }
 
@@ -235,11 +229,9 @@ int main(int argc, char* argv[]){
 
   int i, j;
   /* Working alias table if you make it public again.
-  double my_array[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
+  double my_array[5] = {0.066667, 0.133333, 0.200000, 0.266667, 0.333333};
   std::vector<double> my_vec(&my_array[0], &my_array[0]+5);
-
   Sampling::AliasTable myTable(my_vec);
-
   int answers[] = {0, 0, 0, 0, 0};
   int N = 1000000;
   double rand1, rand2;
@@ -248,18 +240,20 @@ int main(int argc, char* argv[]){
      rand2 = (double) rand()/RAND_MAX;
      answers[myTable.draw_sample(rand1, rand2)]++;
   }
-
   printf("bin |  prob  | expected prob\n");
   for(i=0; i<5; i++){
     printf("%i    %f   %f \n", i+1, (double) answers[i]/N, (double) (i+1)/15.0);
   }
- / */
+ */
+
+
+
 
  Sampling& sampling = *Sampling::instance();
  sampling.SamplingSetup(argv[1], argv[2], argv[3]);
 
  double rands[6];
- double x, y, z, E;
+ double x, y, z, e, w;
  //sampling.SampleXYZE(rands, x, y, z, E);
   std::ofstream myfile;
   myfile.open ("unstr.out");
@@ -267,8 +261,8 @@ int main(int argc, char* argv[]){
    for(j=0; j<6; j++){
      rands[j] = (double) rand()/RAND_MAX;
    }
-   sampling.SampleXYZE(rands, x, y, z, E);
-   myfile << x <<" "<< y <<" "<<z<< " "<< E <<std::endl;
+   sampling.SampleXYZE(rands, x, y, z, e, w);
+   myfile << x <<" "<< y <<" "<<z<< " "<< e << " "<< w <<std::endl;
  }
 
 return 0;
