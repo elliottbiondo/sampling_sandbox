@@ -16,7 +16,8 @@ public:
   static Sampling *instance(MBInterface *mb_impl = NULL);
   MBInterface* moab_instance() {return mbImpl;}
   ~Sampling();
-  void SamplingSetup(char* fileName, char* phtn_src_tag_name, char* e_bounds_tag_name);
+  void SamplingSetup(char* fileName, char* src_tag_name, char* e_bound_tag_name);
+  void SamplingSetup(char* fileName, char* src_tag_name, char* e_bounds_tag_name, char* bias_tag_name);
   void SampleXYZE(double* rands, double &x, double &y, double &z, double &e, double &w);
 
 
@@ -24,6 +25,7 @@ private:
   //functions
   std::vector<double> find_volumes();
   //variable
+  bool bias;
   int tag_len;
   MBRange ves;
   MBEntityType ve_type;
