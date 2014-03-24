@@ -116,13 +116,16 @@ void Sampling::SamplingSetup(char* fileName, char* src_tag_name, char* e_bounds_
 
   MBTag e_tag;
   std::cout << e_bounds_tag_name << std::endl;
-  rval = MBI->tag_get_handle(e_bounds_tag_name, 3, MB_TYPE_DOUBLE, e_tag);
+  //rval = MBI->tag_get_handle(e_bounds_tag_name, 3, MB_TYPE_DOUBLE, e_tag);
+  rval = MBI->tag_get_handle("e_bounds2", 3, MB_TYPE_DOUBLE, e_tag);
   std::cout << "error code: " << rval << std::endl;
+  std::cout << "e_tag"<< e_tag<< std::endl;
 
   MBRange entities;
-  rval = MBI->get_entities_by_type_and_tag(0, MBENTITYSET, &e_tag, NULL, 1, entities );
-  rval = MBI->get_entities_by_type_and_tag(0, MBHEX, &phtn_src_tag, NULL, 1, entities );
-
+  rval = MBI->get_entities_by_type_and_tag(0, MBENTITYSET, &e_tag, NULL, 1, entities);
+  //rval = MBI->get_entities_by_type_and_tag(0, MBHEX, &src_tag, NULL, 1, entities);
+  std::cout << "error code: " << rval << std::endl;
+  std::cout << entities << std::endl; 
   std::cout <<"iterator length: "<<entities.size() << std::endl;
 
   for (MBRange::const_iterator s = entities.begin(); s != entities.end(); ++s) {
@@ -212,7 +215,7 @@ void Sampling::SampleXYZE(double* rands, double &x, double &y, double &z, double
     
     if(s + t + u > 1){
       if(t + u > 1){
-        double old_t = u;
+        double old_t = t;
         t = 1.0 - u;
         u = 1.0 - s - old_t;
       }else if (t + u <= 1){
