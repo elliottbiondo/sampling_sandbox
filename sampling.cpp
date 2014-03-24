@@ -113,17 +113,32 @@ void Sampling::SamplingSetup(char* fileName, char* phtn_src_tag_name, char* e_bo
   rval = MBI->tag_get_data( phtn_src_tag, ves, &pdf[0]);
   //assert( rval == MB_SUCCESS );
 
-  /*
   MBTag e_tag;
   std::cout << e_bounds_tag_name << std::endl;
   rval = MBI->tag_get_handle(e_bounds_tag_name, 3, MB_TYPE_DOUBLE, e_tag);
-  std::cout << rval << std::endl;
-  assert(rval == MB_SUCCESS);
-  rval = MBI->tag_get_data(e_tag, &loaded_file_set, 1, &e_bounds[0]);
+  std::cout << "error code: " << rval << std::endl;
+
+  MBRange entities;
+  rval = MBI->get_entities_by_type_and_tag(0, MBENTITYSET, &e_tag, NULL, 1, entities );
+  rval = MBI->get_entities_by_type_and_tag(0, MBHEX, &phtn_src_tag, NULL, 1, entities );
+
+  std::cout <<"iterator length: "<<entities.size() << std::endl;
+
+  for (MBRange::const_iterator s = entities.begin(); s != entities.end(); ++s) {
+      MBEntityHandle set = *s;
+      rval = MBI->tag_get_data( e_tag, &set, 1, &e_bounds[0] );
+      std::cout << rval << std::endl;
+      std::cout << "hello" << std::endl;
+  }
+
+ // std::cout << rval << std::endl;
+ // assert(rval == MB_SUCCESS);
+ // rval = MBI->tag_get_data(e_tag, entities, 1, &e_bounds[0]);
+  /*
   std::cout << rval << std::endl;
   */
   //assert(rval == MB_SUCCESS);
-//  std::cout << e_bounds[0] << std::endl;
+ // std::cout << e_bounds[0] << std::endl;
   //std::cout << e_bounds[0] << e_bounds[1] << e_bounds[2] << std::endl;
 
   int i, j;
@@ -131,6 +146,15 @@ void Sampling::SamplingSetup(char* fileName, char* phtn_src_tag_name, char* e_bo
     for(j=0; j<tag_len; ++j){
      pdf[i*tag_len + j] *=  volumes[i];
     }
+  }
+
+  //normalize
+  double sum = 0;
+  for(i=0; i<ves.size()*tag_len; ++i){
+    sum += pdf[i];
+  }
+  for(i=0; i<ves.size()*tag_len; ++i){
+    pdf[i] /= sum;
   }
   at = new AliasTable(pdf);
 }
@@ -245,8 +269,6 @@ int main(int argc, char* argv[]){
     printf("%i    %f   %f \n", i+1, (double) answers[i]/N, (double) (i+1)/15.0);
   }
  */
-
-
 
 
  Sampling& sampling = *Sampling::instance();
