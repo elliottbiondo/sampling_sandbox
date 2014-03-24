@@ -67,18 +67,21 @@ int Sampling::AliasTable::draw_sample(double rand1, double rand2){
     return rand2 < prob[i] ? i : alias[i];
 }
 
+void Sampling::SamplingSetup(char* fileName, char* src_tag_name, char* bias_tag_name, char* e_bounds_tag_name){
 
-void Sampling::SamplingSetup(char* fileName, char* phtn_src_tag_name, char* e_bounds_tag_name){
+
+}
+
+
+
+
+void Sampling::SamplingSetup(char* fileName, char* src_tag_name, char* e_bounds_tag_name){
   MBErrorCode rval;
-
   MBEntityHandle loaded_file_set;
-  // create meshset to load file into
   rval = MBI->create_meshset(MESHSET_SET, loaded_file_set );
   //assert( rval == MB_SUCCESS );
-  // load file
   rval = MBI->load_file( fileName, &loaded_file_set );
   //assert( rval == MB_SUCCESS );
-  // get entities
   rval = MBI->get_entities_by_dimension(loaded_file_set, 3, ves);
 
   int num_hex, num_tet;
@@ -93,24 +96,22 @@ void Sampling::SamplingSetup(char* fileName, char* phtn_src_tag_name, char* e_bo
   }
   else exit(1);
 
-
   std::vector<double> volumes =  find_volumes();
-
 
   //assert( rval == MB_SUCCESS );
   // get tag handle
-  MBTag phtn_src_tag;
-  rval = MBI->tag_get_handle(phtn_src_tag_name, moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, phtn_src_tag);
+  MBTag src_tag, bias_tag;
+  rval = MBI->tag_get_handle(src_tag_name, moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, src_tag);
   // THIS ASSERT FAILS because we do not know number of energy groups a priori.
   //assert( rval == MB_SUCCESS );
   // get tag size
   int tag_size;
-  rval = MBI->tag_get_bytes(phtn_src_tag, *(&tag_size));
+  rval = MBI->tag_get_bytes(src_tag, *(&tag_size));
   //assert( rval == MB_SUCCESS );
   tag_len = tag_size/sizeof(double);
 
   std::vector<double> pdf(ves.size()*tag_len); 
-  rval = MBI->tag_get_data( phtn_src_tag, ves, &pdf[0]);
+  rval = MBI->tag_get_data(src_tag, ves, &pdf[0]);
   //assert( rval == MB_SUCCESS );
 
   MBTag e_tag;
