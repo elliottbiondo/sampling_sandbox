@@ -67,21 +67,29 @@ int Sampling::AliasTable::sample_pdf(double rand1, double rand2){
     return rand2 < prob[i] ? i : alias[i];
 }
 
-void Sampling::SamplingSetup(char* file_name, char* src_tag_name, char* e_bounds_tag_name){
+void Sampling::sampling_setup(char* file_name, char* src_tag_name, char* e_bounds_tag_name){
   bias = false;
-  SamplingSetup(filename, src_tag_name, e_bounds, tag_name, bias_tag_name);
+  char* bias_tag_name = NULL;
+  sampling_setup(file_name, src_tag_name, e_bounds_tag_name, bias_tag_name);
 }
 
 
+void Sampling::sampling_setup(char* file_name, char* _src_tag_name, char* _e_bounds_tag_name, char* _bias_tag_name){
+  // If this function is not being called from the other overload of this 
+  // function, then a bias tag has been specified. 
+  src_tag_name = _src_tag_name;
+  e_bounds_tag_name = _e_bounds_tag_name;
+  bias_tag_name = _bias_tag_name;
+  if (bias != false) bias == true;
+  ;
 
-
-void Sampling::SamplingSetup(char* file_name, char* src_tag_name, char* e_bounds_tag_name, char* bias_tag_name){
   MBErrorCode rval;
   MBEntityHandle loaded_file_set;
   rval = MBI->create_meshset(MESHSET_SET, loaded_file_set );
   //assert( rval == MB_SUCCESS );
   rval = MBI->load_file( file_name, &loaded_file_set );
   //assert( rval == MB_SUCCESS );
+  MBRange ves;
   rval = MBI->get_entities_by_dimension(loaded_file_set, 3, ves);
 
   int num_hex, num_tet;
@@ -96,75 +104,12 @@ void Sampling::SamplingSetup(char* file_name, char* src_tag_name, char* e_bounds
   }
   else exit(1);
 
-  std::vector<double> volumes =  find_volumes();
-
-  //assert( rval == MB_SUCCESS );
-  // get tag handle
-  MBTag src_tag, bias_tag;
-  rval = MBI->tag_get_handle(src_tag_name, moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, src_tag);
-  // THIS ASSERT FAILS because we do not know number of energy groups a priori.
-  //assert( rval == MB_SUCCESS );
-  // get tag size
-  int tag_size;
-  rval = MBI->tag_get_bytes(src_tag, *(&tag_size));
-  //assert( rval == MB_SUCCESS );
-  tag_len = tag_size/sizeof(double);
-
-  std::vector<double> pdf(ves.size()*tag_len); 
-  rval = MBI->tag_get_data(src_tag, ves, &pdf[0]);
-  //assert( rval == MB_SUCCESS );
-
-  MBTag e_tag;
-  std::cout << e_bounds_tag_name << std::endl;
-  //rval = MBI->tag_get_handle(e_bounds_tag_name, 3, MB_TYPE_DOUBLE, e_tag);
-  rval = MBI->tag_get_handle("e_bounds2", 3, MB_TYPE_DOUBLE, e_tag);
-  std::cout << "error code: " << rval << std::endl;
-  std::cout << "e_tag"<< e_tag<< std::endl;
-
-  MBRange entities;
-  rval = MBI->get_entities_by_type_and_tag(0, MBENTITYSET, &e_tag, NULL, 1, entities);
-  //rval = MBI->get_entities_by_type_and_tag(0, MBHEX, &src_tag, NULL, 1, entities);
-  std::cout << "error code: " << rval << std::endl;
-  std::cout << entities << std::endl; 
-  std::cout <<"iterator length: "<<entities.size() << std::endl;
-
-  for (MBRange::const_iterator s = entities.begin(); s != entities.end(); ++s) {
-      MBEntityHandle set = *s;
-      rval = MBI->tag_get_data( e_tag, &set, 1, &e_bounds[0] );
-      std::cout << rval << std::endl;
-      std::cout << "hello" << std::endl;
-  }
-
- // std::cout << rval << std::endl;
- // assert(rval == MB_SUCCESS);
- // rval = MBI->tag_get_data(e_tag, entities, 1, &e_bounds[0]);
-  /*
-  std::cout << rval << std::endl;
-  */
-  //assert(rval == MB_SUCCESS);
- // std::cout << e_bounds[0] << std::endl;
-  //std::cout << e_bounds[0] << e_bounds[1] << e_bounds[2] << std::endl;
-
-  int i, j;
-  for(i=0; i<ves.size(); ++i){
-    for(j=0; j<tag_len; ++j){
-     pdf[i*tag_len + j] *=  volumes[i];
-    }
-  }
-
-  //normalize
-  double sum = 0;
-  for(i=0; i<ves.size()*tag_len; ++i){
-    sum += pdf[i];
-  }
-  for(i=0; i<ves.size()*tag_len; ++i){
-    pdf[i] /= sum;
-  }
-  at = new AliasTable(pdf);
+  std::vector<double> volumes(ves.size());
+  get_mesh_geom_data(ves, volumes);
+  get_mesh_tag_data(ves, volumes);
 }
 
-std::vector<double> Sampling::find_volumes(){
-  std::vector<double> volumes (ves.size());
+void Sampling::get_mesh_geom_data(MBRange ves, std::vector<double> &volumes){
   MBErrorCode rval;
   std::vector<MBEntityHandle> connect;
   rval = MBI->get_connectivity_by_type(ve_type, connect);
@@ -190,15 +135,111 @@ std::vector<double> Sampling::find_volumes(){
       cart_sampler.push_back(vp);
     }
   }
-  return volumes;
 }
+
+void Sampling::get_mesh_tag_data(MBRange ves, std::vector<double>volumes){
+  //assert( rval == MB_SUCCESS );
+  // get tag handle
+  MBErrorCode rval;
+  MBTag src_tag;
+  rval = MBI->tag_get_handle(src_tag_name, moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, src_tag);
+  // THIS ASSERT FAILS because we do not know number of energy groups a priori.
+  //assert( rval == MB_SUCCESS );
+  // get tag size
+  int src_tag_size;
+  rval = MBI->tag_get_bytes(src_tag, *(&src_tag_size));
+  //assert( rval == MB_SUCCESS );
+  num_e_groups = src_tag_size/sizeof(double);
+
+  std::vector<double> pdf(ves.size()*num_e_groups); 
+  rval = MBI->tag_get_data(src_tag, ves, &pdf[0]);
+  //assert( rval == MB_SUCCESS );
+
+  int i, j;
+  for(i=0; i<ves.size(); ++i){
+    for(j=0; j<num_e_groups; ++j){
+     pdf[i*num_e_groups + j] *=  volumes[i];
+    }
+  }
+  //normalize
+  double sum = 0;
+  for(i=0; i<ves.size()*num_e_groups; ++i){
+    sum += pdf[i];
+  }
+  for(i=0; i<ves.size()*num_e_groups; ++i){
+    pdf[i] /= sum;
+  }
+
+  at = new AliasTable(pdf);
+
+  if(bias == true){
+    MBTag bias_tag;
+    rval = MBI->tag_get_handle(bias_tag_name, moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, bias_tag);
+    int bias_tag_size;
+    rval = MBI->tag_get_bytes(bias_tag, *(&bias_tag_size));
+    int num_bias_groups = bias_tag_size/sizeof(double);
+
+    if (num_bias_groups == num_e_groups){
+      phase_space_bias = true;
+    } else if(num_bias_groups == 1){
+      phase_space_bias = false;
+    }
+    else
+      exit(1);
+  
+    std::vector<double> q(ves.size()*num_bias_groups); 
+    rval = MBI->tag_get_data(src_tag, ves, &q[0]);
+    sum = 0;
+    for(i=0; i<ves.size()*num_bias_groups; ++i){
+      sum += q[i];
+    }
+    for(i=0; i<ves.size()*num_bias_groups; ++i){
+      q[i] /= sum;
+    }
+    
+    
+  }
+
+/* E_TAG STUFF
+  MBTag e_tag;
+  std::cout << e_bounds_tag_name << std::endl;
+  //rval = MBI->tag_get_handle(e_bounds_tag_name, 3, MB_TYPE_DOUBLE, e_tag);
+  rval = MBI->tag_get_handle("e_bounds2", 3, MB_TYPE_DOUBLE, e_tag);
+  std::cout << "error code: " << rval << std::endl;
+  std::cout << "e_tag"<< e_tag<< std::endl;
+
+  MBRange entities;
+  rval = MBI->get_entities_by_type_and_tag(0, MBENTITYSET, &e_tag, NULL, 1, entities);
+  //rval = MBI->get_entities_by_type_and_tag(0, MBHEX, &src_tag, NULL, 1, entities);
+  std::cout << "error code: " << rval << std::endl;
+  std::cout << entities << std::endl; 
+  std::cout <<"iterator length: "<<entities.size() << std::endl;
+
+  for (MBRange::const_iterator s = entities.begin(); s != entities.end(); ++s) {
+      MBEntityHandle set = *s;
+      rval = MBI->tag_get_data( e_tag, &set, 1, &e_bounds[0] );
+      std::cout << rval << std::endl;
+      std::cout << "hello" << std::endl;
+  }
+
+ // std::cout << rval << std::endl;
+ // assert(rval == MB_SUCCESS);
+ // rval = MBI->tag_get_data(e_tag, entities, 1, &e_bounds[0]);
+  std::cout << rval << std::endl;
+  //assert(rval == MB_SUCCESS);
+ // std::cout << e_bounds[0] << std::endl;
+  //std::cout << e_bounds[0] << e_bounds[1] << e_bounds[2] << std::endl;
+  */
+
+}
+
 
 
 void Sampling::particle_birth(double* rands, double &x, double &y, double &z, double &e, double &w){
   // get indices
   int pdf_idx = at->sample_pdf(rands[0], rands[1]);
-  int ve_idx = pdf_idx/tag_len;
-  int e_idx = pdf_idx % tag_len;
+  int ve_idx = pdf_idx/num_e_groups;
+  int e_idx = pdf_idx % num_e_groups;
   
   // get x, y, z
   if(ve_type == MBHEX){
@@ -230,7 +271,7 @@ void Sampling::particle_birth(double* rands, double &x, double &y, double &z, do
 
   get_e(e_idx, &rands[5], e);
 
-  if(bias = true)
+  if(bias == true)
     get_w(pdf_idx, w);
   else
     w = 1.0;
@@ -258,7 +299,7 @@ void Sampling::get_e(int e_idx, double* rand, double &e){
 }
 
 void Sampling::get_w(int pdf_idx, double &w){
-  w = 1.0
+  w = 1.0;
 }
 
 
@@ -285,8 +326,8 @@ int main(int argc, char* argv[]){
 
 
  Sampling& sampling = *Sampling::instance();
- sampling.SamplingSetup(argv[1], argv[2], argv[3]);
- //sampling.SamplingSetup(argv[1], argv[2], argv[3], argv[4]);
+ sampling.sampling_setup(argv[1], argv[2], argv[3]);
+ //sampling.sampling_setup(argv[1], argv[2], argv[3], argv[4]);
 
  double rands[6];
  double x, y, z, e, w;

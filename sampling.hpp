@@ -16,14 +16,15 @@ public:
   static Sampling *instance(MBInterface *mb_impl = NULL);
   MBInterface* moab_instance() {return mbImpl;}
   ~Sampling();
-  void SamplingSetup(char* file_name, char* src_tag_name, char* e_bound_tag_name);
-  void SamplingSetup(char* file_name, char* src_tag_name, char* e_bounds_tag_name, char* bias_tag_name);
+  void sampling_setup(char* file_name, char* src_tag_name, char* e_bound_tag_name);
+  void sampling_setup(char* file_name, char* src_tag_name, char* e_bounds_tag_name, char* bias_tag_name);
   void particle_birth(double* rands, double &x, double &y, double &z, double &e, double &w);
 
 
 private:
   // functions and classes
-  std::vector<double> find_volumes();
+  void get_mesh_geom_data(MBRange ves, std::vector<double> &volumes);
+  void get_mesh_tag_data(MBRange ves, std::vector<double>volumes);
   void get_xyz(int ve_idx, double* rands, double &x, double &y, double &z);
   void get_e(int e_idx, double* rand, double &e);
   void get_w(int pdf_idx, double &w);
@@ -38,9 +39,11 @@ private:
     AliasTable(std::vector<double> p);
   };
   //  member variables
-  bool bias = true;
-  int tag_len;
-  MBRange ves;
+  bool bias;
+  char* src_tag_name;
+  char* e_bounds_tag_name;
+  char* bias_tag_name;
+  int num_e_groups;
   MBEntityType ve_type;
   std::vector<double> e_bounds;
   int verts_per_ve;
@@ -50,9 +53,10 @@ private:
     MBCartVect y_vec;
     MBCartVect z_vec;
   };
-
   std::vector<vector_points> cart_sampler;
   AliasTable* at;
+  bool phase_space_bias;
+  std::vector<double> bias_weights;
 
 private:
   Sampling(MBInterface *mb_impl);
