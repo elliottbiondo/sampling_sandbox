@@ -62,25 +62,25 @@ Sampling::AliasTable::AliasTable(std::vector<double> p){
         prob[ S[--nS] ] = 1;
 }
 
-int Sampling::AliasTable::draw_sample(double rand1, double rand2){
+int Sampling::AliasTable::sample_pdf(double rand1, double rand2){
     int i = (int) n * rand1;
     return rand2 < prob[i] ? i : alias[i];
 }
 
-void Sampling::SamplingSetup(char* fileName, char* src_tag_name, char* bias_tag_name, char* e_bounds_tag_name){
-
-
+void Sampling::SamplingSetup(char* file_name, char* src_tag_name, char* e_bounds_tag_name){
+  bias = false;
+  SamplingSetup(filename, src_tag_name, e_bounds, tag_name, bias_tag_name);
 }
 
 
 
 
-void Sampling::SamplingSetup(char* fileName, char* src_tag_name, char* e_bounds_tag_name){
+void Sampling::SamplingSetup(char* file_name, char* src_tag_name, char* e_bounds_tag_name, char* bias_tag_name){
   MBErrorCode rval;
   MBEntityHandle loaded_file_set;
   rval = MBI->create_meshset(MESHSET_SET, loaded_file_set );
   //assert( rval == MB_SUCCESS );
-  rval = MBI->load_file( fileName, &loaded_file_set );
+  rval = MBI->load_file( file_name, &loaded_file_set );
   //assert( rval == MB_SUCCESS );
   rval = MBI->get_entities_by_dimension(loaded_file_set, 3, ves);
 
@@ -89,10 +89,10 @@ void Sampling::SamplingSetup(char* fileName, char* src_tag_name, char* e_bounds_
   rval = MBI->get_number_entities_by_type(loaded_file_set, MBTET, num_tet);
   if(num_hex == ves.size()){
     ve_type = MBHEX;
-    verts_per_vol = 8;
+    verts_per_ve = 8;
   } else if (num_tet == ves.size()){
     ve_type = MBTET;
-    verts_per_vol = 4;
+    verts_per_ve = 4;
   }
   else exit(1);
 
@@ -168,11 +168,11 @@ std::vector<double> Sampling::find_volumes(){
   MBErrorCode rval;
   std::vector<MBEntityHandle> connect;
   rval = MBI->get_connectivity_by_type(ve_type, connect);
-  double coords[verts_per_vol*3];
+  double coords[verts_per_ve*3];
   int i;
   for(i=0; i<ves.size(); ++i){
-    rval=MBI->get_coords(&connect[verts_per_vol*i], verts_per_vol, &coords[0]);
-    volumes[i] = measure(ve_type, verts_per_vol, &coords[0]);
+    rval=MBI->get_coords(&connect[verts_per_ve*i], verts_per_ve, &coords[0]);
+    volumes[i] = measure(ve_type, verts_per_ve, &coords[0]);
 
     if(ve_type == MBHEX){
       MBCartVect o(coords[0], coords[1], coords[2]);
@@ -194,9 +194,9 @@ std::vector<double> Sampling::find_volumes(){
 }
 
 
-void Sampling::SampleXYZE(double* rands, double &x, double &y, double &z, double &e, double &w){
+void Sampling::particle_birth(double* rands, double &x, double &y, double &z, double &e, double &w){
   // get indices
-  int pdf_idx = at->draw_sample(rands[0], rands[1]);
+  int pdf_idx = at->sample_pdf(rands[0], rands[1]);
   int ve_idx = pdf_idx/tag_len;
   int e_idx = pdf_idx % tag_len;
   
@@ -229,7 +229,11 @@ void Sampling::SampleXYZE(double* rands, double &x, double &y, double &z, double
   }
 
   get_e(e_idx, &rands[5], e);
-  w = 1.0;
+
+  if(bias = true)
+    get_w(pdf_idx, w);
+  else
+    w = 1.0;
 }
 
 void Sampling::get_xyz(int ve_idx, double* rands, double &x, double &y, double &z){
@@ -253,6 +257,11 @@ void Sampling::get_e(int e_idx, double* rand, double &e){
 
 }
 
+void Sampling::get_w(int pdf_idx, double &w){
+  w = 1.0
+}
+
+
 int main(int argc, char* argv[]){
 
   int i, j;
@@ -266,7 +275,7 @@ int main(int argc, char* argv[]){
   for(i=0; i<N; i++){
      rand1 = (double) rand()/RAND_MAX;
      rand2 = (double) rand()/RAND_MAX;
-     answers[myTable.draw_sample(rand1, rand2)]++;
+     answers[myTable.sample_pdf(rand1, rand2]++;
   }
   printf("bin |  prob  | expected prob\n");
   for(i=0; i<5; i++){
@@ -277,17 +286,18 @@ int main(int argc, char* argv[]){
 
  Sampling& sampling = *Sampling::instance();
  sampling.SamplingSetup(argv[1], argv[2], argv[3]);
+ //sampling.SamplingSetup(argv[1], argv[2], argv[3], argv[4]);
 
  double rands[6];
  double x, y, z, e, w;
- //sampling.SampleXYZE(rands, x, y, z, E);
+ //sampling.particle_birth(rands, x, y, z, E);
   std::ofstream myfile;
   myfile.open ("unstr.out");
  for(i=0; i<5000; i++){
    for(j=0; j<6; j++){
      rands[j] = (double) rand()/RAND_MAX;
    }
-   sampling.SampleXYZE(rands, x, y, z, e, w);
+   sampling.particle_birth(rands, x, y, z, e, w);
    myfile << x <<" "<< y <<" "<<z<< " "<< e << " "<< w <<std::endl;
  }
 
