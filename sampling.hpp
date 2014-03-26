@@ -26,7 +26,7 @@ private:
   void get_mesh_geom_data(MBRange ves, std::vector<double> &volumes);
   void get_mesh_tag_data(MBRange ves, std::vector<double>volumes);
   void get_xyz(int ve_idx, double* rands, double &x, double &y, double &z);
-  void get_e(int e_idx, double* rand, double &e);
+  void get_e(int e_idx, double rand, double &e);
   void get_w(int pdf_idx, double &w);
   class AliasTable
   {
@@ -39,6 +39,7 @@ private:
     AliasTable(std::vector<double> p);
   };
   //  member variables
+public:
   bool bias;
   char* src_tag_name;
   char* e_bounds_tag_name;
@@ -56,7 +57,7 @@ private:
   std::vector<vector_points> cart_sampler;
   AliasTable* at;
   bool phase_space_bias;
-  std::vector<double> bias_weights;
+  std::vector<double> biased_weights;
 
 private:
   Sampling(MBInterface *mb_impl);

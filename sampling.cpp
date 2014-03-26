@@ -17,55 +17,8 @@ void Sampling::create_instance(MBInterface *mb_impl)
 }
 
 Sampling::Sampling(MBInterface *mb_impl)
-   : mbImpl(mb_impl){}
+   : mbImpl(mb_impl), bias(true){}
 
-Sampling::AliasTable::AliasTable(std::vector<double> p){
-    n = p.size();
-    prob.resize(n);
-    alias.resize(n);
-    std::vector<double> S(n);
-    std::vector<double> L(n);
-    int i, a, g;
-
-    for(i=0; i<n; ++i) 
-      p[i] *= n;
-
-    // Set separate index lists for small and large probabilities:
-    int nS = 0;
-    int nL = 0;
-    for(i=n-1; i>=0; --i) {
-        // at variance from Schwarz, we revert the index order
-        if(p[i] < 1)
-            S[nS++] = i;
-        else
-            L[nL++] = i;
-    }
-
-    // Work through index lists
-    while(nS && nL){
-        a = S[--nS]; // Schwarz's l
-        g = L[--nL]; // Schwarz's g
-        prob[a] = p[a];
-        alias[a] = g;
-        p[g] = p[g] + p[a] - 1;
-        if (p[g] < 1)
-            S[nS++] = g;
-        else
-            L[nL++] = g;
-    }
-
-    while(nL)
-        prob[L[--nL]] = 1;
-
-    while(nS)
-        // can only happen through numeric instability
-        prob[ S[--nS] ] = 1;
-}
-
-int Sampling::AliasTable::sample_pdf(double rand1, double rand2){
-    int i = (int) n * rand1;
-    return rand2 < prob[i] ? i : alias[i];
-}
 
 void Sampling::sampling_setup(char* file_name, char* src_tag_name, char* e_bounds_tag_name){
   bias = false;
@@ -80,8 +33,6 @@ void Sampling::sampling_setup(char* file_name, char* _src_tag_name, char* _e_bou
   src_tag_name = _src_tag_name;
   e_bounds_tag_name = _e_bounds_tag_name;
   bias_tag_name = _bias_tag_name;
-  if (bias != false) bias == true;
-  ;
 
   MBErrorCode rval;
   MBEntityHandle loaded_file_set;
@@ -184,8 +135,10 @@ void Sampling::get_mesh_tag_data(MBRange ves, std::vector<double>volumes){
     } else if(num_bias_groups == 1){
       phase_space_bias = false;
     }
-    else
+    else{
+    std::cout<<"Length of bias tag must equal length of the source tag, or 1."<<std::endl;
       exit(1);
+    }
   
     std::vector<double> q(ves.size()*num_bias_groups); 
     rval = MBI->tag_get_data(src_tag, ves, &q[0]);
@@ -241,9 +194,13 @@ void Sampling::particle_birth(double* rands, double &x, double &y, double &z, do
   int ve_idx = pdf_idx/num_e_groups;
   int e_idx = pdf_idx % num_e_groups;
   
-  // get x, y, z
+  // get x, y, za
+  double e_rand = rands[5];
+
   if(ve_type == MBHEX){
-    get_xyz(ve_idx, &rands[2],x,y,z);
+    double xyz_rands[3] = {rands[2], rands[3], rands[4]};
+    get_xyz(ve_idx, xyz_rands, x, y, z);
+    //get_xyz(ve_idx, &rands[2],x,y,z);
   } else if (ve_type == MBTET){
     double s = rands[2];
     double t = rands[3];
@@ -265,16 +222,12 @@ void Sampling::particle_birth(double* rands, double &x, double &y, double &z, do
         u = old_s + t + u - 1;
       }
     }
-    double new_rands[3] = {s, t, u};
-    get_xyz(ve_idx, new_rands, x, y, z);
+    double xyz_rands[3] = {s, t, u};
+    get_xyz(ve_idx, xyz_rands, x, y, z);
   }
 
-  get_e(e_idx, &rands[5], e);
-
-  if(bias == true)
-    get_w(pdf_idx, w);
-  else
-    w = 1.0;
+  get_e(e_idx, e_rand, e);
+  get_w(pdf_idx, w);
 }
 
 void Sampling::get_xyz(int ve_idx, double* rands, double &x, double &y, double &z){
@@ -288,59 +241,72 @@ void Sampling::get_xyz(int ve_idx, double* rands, double &x, double &y, double &
   z = a[2];
 }
 
-void Sampling::get_e(int e_idx, double* rand, double &e){
+void Sampling::get_e(int e_idx, double rand, double &e){
    e_bounds.push_back(1.1);
    e_bounds.push_back(1.2);
    e_bounds.push_back(1.3);
    double e_min = e_bounds[e_idx];
    double e_max = e_bounds[e_idx + 1];
-   e = rand[0] * (e_max - e_min) + e_min;
+   e = rand * (e_max - e_min) + e_min;
 
 }
 
 void Sampling::get_w(int pdf_idx, double &w){
-  w = 1.0;
+  if(bias == true){
+    if(phase_space_bias == true){
+      w = biased_weights[pdf_idx];
+    }else{
+      w = biased_weights[pdf_idx % num_e_groups];
+    }
+  }else{
+    w = 1.0;
+  }
 }
 
+Sampling::AliasTable::AliasTable(std::vector<double> p){
+    n = p.size();
+    prob.resize(n);
+    alias.resize(n);
+    std::vector<double> small(n);
+    std::vector<double> large(n);
+    int i, a, g;
 
-int main(int argc, char* argv[]){
+    for(i=0; i<n; ++i) 
+      p[i] *= n;
 
-  int i, j;
-  /* Working alias table if you make it public again.
-  double my_array[5] = {0.066667, 0.133333, 0.200000, 0.266667, 0.333333};
-  std::vector<double> my_vec(&my_array[0], &my_array[0]+5);
-  Sampling::AliasTable myTable(my_vec);
-  int answers[] = {0, 0, 0, 0, 0};
-  int N = 1000000;
-  double rand1, rand2;
-  for(i=0; i<N; i++){
-     rand1 = (double) rand()/RAND_MAX;
-     rand2 = (double) rand()/RAND_MAX;
-     answers[myTable.sample_pdf(rand1, rand2]++;
-  }
-  printf("bin |  prob  | expected prob\n");
-  for(i=0; i<5; i++){
-    printf("%i    %f   %f \n", i+1, (double) answers[i]/N, (double) (i+1)/15.0);
-  }
- */
+    // Set separate index lists for small and large probabilities:
+    int n_s = 0;
+    int n_l = 0;
+    for(i=n-1; i>=0; --i) {
+        // at variance from Schwarz, we revert the index order
+        if(p[i] < 1)
+            small[n_s++] = i;
+        else
+            large[n_l++] = i;
+    }
 
+    // Work through index lists
+    while(n_s && n_l){
+        a = small[--n_s]; // Schwarz's l
+        g = large[--n_l]; // Schwarz's g
+        prob[a] = p[a];
+        alias[a] = g;
+        p[g] = p[g] + p[a] - 1;
+        if (p[g] < 1)
+            small[n_s++] = g;
+        else
+            large[n_l++] = g;
+    }
 
- Sampling& sampling = *Sampling::instance();
- sampling.sampling_setup(argv[1], argv[2], argv[3]);
- //sampling.sampling_setup(argv[1], argv[2], argv[3], argv[4]);
+    while(n_l)
+        prob[large[--n_l]] = 1;
 
- double rands[6];
- double x, y, z, e, w;
- //sampling.particle_birth(rands, x, y, z, E);
-  std::ofstream myfile;
-  myfile.open ("unstr.out");
- for(i=0; i<5000; i++){
-   for(j=0; j<6; j++){
-     rands[j] = (double) rand()/RAND_MAX;
-   }
-   sampling.particle_birth(rands, x, y, z, e, w);
-   myfile << x <<" "<< y <<" "<<z<< " "<< e << " "<< w <<std::endl;
- }
+    while(n_s)
+        // can only happen through numeric instability
+        prob[small[--n_s] ] = 1;
+}
 
-return 0;
+int Sampling::AliasTable::sample_pdf(double rand1, double rand2){
+    int i = (int) n * rand1;
+    return rand2 < prob[i] ? i : alias[i];
 }
