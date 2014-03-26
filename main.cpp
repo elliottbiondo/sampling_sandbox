@@ -39,6 +39,5 @@ int main(int argc, char* argv[]){
    sampling.particle_birth(rands, x, y, z, e, w);
    myfile << x <<" "<< y <<" "<<z<< " "<< e << " "<< w <<std::endl;
  }
-std::cout << "\n"<< sampling.bias << std::endl;
 return 0;
 }

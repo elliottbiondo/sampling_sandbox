@@ -12,8 +12,19 @@ subroutine source
   use mcnp_debug
 
   implicit real(dknd) (a-h,o-z)
+  integer,save :: icl_tmp
+  integer :: in_out
 
-  ! 
-  call expirx(0,'source','you need a source subroutine.')
+  ! call chkcel(icl_tmp,2,in_out)  
+
+  xxx = 1.0
+  yyy = 1.0
+  zzz = 1.0
+  erg = 1.0
+  wgt = 1.0
+  tme = 1.0
+  icl = 3
+  ipt = 1
+ 
   return
 end subroutine source

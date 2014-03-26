@@ -121,7 +121,6 @@ void Sampling::get_mesh_tag_data(MBRange ves, std::vector<double>volumes){
     pdf[i] /= sum;
   }
 
-  at = new AliasTable(pdf);
 
   if(bias == true){
     MBTag bias_tag;
@@ -150,7 +149,10 @@ void Sampling::get_mesh_tag_data(MBRange ves, std::vector<double>volumes){
       q[i] /= sum;
     }
     
-    
+  if(bias == true)  
+    at = new AliasTable(pdf);
+  else
+    at = new AliasTable(bias_pdf)
   }
 
 /* E_TAG STUFF
