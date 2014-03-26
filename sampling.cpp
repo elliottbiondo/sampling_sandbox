@@ -187,7 +187,6 @@ void Sampling::get_mesh_tag_data(MBRange ves, std::vector<double>volumes){
 }
 
 
-
 void Sampling::particle_birth(double* rands, double &x, double &y, double &z, double &e, double &w){
   // get indices
   int pdf_idx = at->sample_pdf(rands[0], rands[1]);
@@ -196,16 +195,21 @@ void Sampling::particle_birth(double* rands, double &x, double &y, double &z, do
   
   // get x, y, za
   double e_rand = rands[5];
+  get_e(e_idx, e_rand, e);
 
-  if(ve_type == MBHEX){
-    double xyz_rands[3] = {rands[2], rands[3], rands[4]};
-    get_xyz(ve_idx, xyz_rands, x, y, z);
-    //get_xyz(ve_idx, &rands[2],x,y,z);
-  } else if (ve_type == MBTET){
-    double s = rands[2];
-    double t = rands[3];
-    double u = rands[4];
+  double xyz_rands[3] = {rands[2], rands[3], rands[4]};
+  get_xyz(ve_idx, xyz_rands, x, y, z);
 
+  get_w(pdf_idx, w);
+}
+
+void Sampling::get_xyz(int ve_idx, double* rands, double &x, double &y, double &z){
+
+  double s = rands[0];
+  double t = rands[1];
+  double u = rands[2];
+
+  if (ve_type == MBTET){
     if(s + t > 1){
       s = 1.0 - s;
       t = 1.0 - t;
@@ -222,29 +226,23 @@ void Sampling::particle_birth(double* rands, double &x, double &y, double &z, do
         u = old_s + t + u - 1;
       }
     }
-    double xyz_rands[3] = {s, t, u};
-    get_xyz(ve_idx, xyz_rands, x, y, z);
   }
 
-  get_e(e_idx, e_rand, e);
-  get_w(pdf_idx, w);
-}
-
-void Sampling::get_xyz(int ve_idx, double* rands, double &x, double &y, double &z){
-
-  MBCartVect a = rands[0]*cart_sampler[ve_idx].x_vec + \
-                 rands[1]*cart_sampler[ve_idx].y_vec + \
-                 rands[2]*cart_sampler[ve_idx].z_vec + \
-                 cart_sampler[ve_idx].o_point;
-  x = a[0];
-  y = a[1];
-  z = a[2];
+  MBCartVect birth_location = s*cart_sampler[ve_idx].x_vec + \
+                              t*cart_sampler[ve_idx].y_vec + \
+                              u*cart_sampler[ve_idx].z_vec + \
+                                cart_sampler[ve_idx].o_point;
+  x = birth_location[0];
+  y = birth_location[1];
+  z = birth_location[2];
 }
 
 void Sampling::get_e(int e_idx, double rand, double &e){
+
    e_bounds.push_back(1.1);
    e_bounds.push_back(1.2);
    e_bounds.push_back(1.3);
+
    double e_min = e_bounds[e_idx];
    double e_max = e_bounds[e_idx + 1];
    e = rand * (e_max - e_min) + e_min;
