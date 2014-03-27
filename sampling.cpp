@@ -17,17 +17,26 @@ void Sampling::create_instance(MBInterface *mb_impl)
 }
 
 Sampling::Sampling(MBInterface *mb_impl)
-   : mbImpl(mb_impl), bias(true){}
+   : mbImpl(mb_impl), uniform(false){}
 
 
-void Sampling::sampling_setup(char* file_name, char* src_tag_name, char* e_bounds_tag_name){
-  bias = false;
+void Sampling::sampling_setup(char* file_name, char* src_tag_name, char* e_bounds_tag_name, bool _analog){
+
+  analog = _analog;
+  if(analog == false)
+    uniform = true;
+
   char* bias_tag_name = NULL;
-  sampling_setup(file_name, src_tag_name, e_bounds_tag_name, bias_tag_name);
+  sampling_setup(file_name, src_tag_name, e_bounds_tag_name, analog, bias_tag_name);
 }
 
 
-void Sampling::sampling_setup(char* file_name, char* _src_tag_name, char* _e_bounds_tag_name, char* _bias_tag_name){
+void Sampling::sampling_setup(char* file_name, char* _src_tag_name, char* _e_bounds_tag_name, bool analog, char* _bias_tag_name){
+
+  if(analog == true && _bias_tag_name != NULL){
+    throw std::invalid_argument("bias_tag_name should not be specified for analog sampling");
+  }
+
   // If this function is not being called from the other overload of this 
   // function, then a bias tag has been specified. 
   src_tag_name = _src_tag_name;
@@ -53,11 +62,13 @@ void Sampling::sampling_setup(char* file_name, char* _src_tag_name, char* _e_bou
     ve_type = MBTET;
     verts_per_ve = 4;
   }
-  else exit(1);
+  else
+   throw std::invalid_argument("Mesh file must contain only tets or hexes");
 
   std::vector<double> volumes(ves.size());
   get_mesh_geom_data(ves, volumes);
   get_mesh_tag_data(ves, volumes);
+  //get_e_bounds_data(e_bounds_tag);
 }
 
 void Sampling::get_mesh_geom_data(MBRange ves, std::vector<double> &volumes){
@@ -89,14 +100,11 @@ void Sampling::get_mesh_geom_data(MBRange ves, std::vector<double> &volumes){
 }
 
 void Sampling::get_mesh_tag_data(MBRange ves, std::vector<double>volumes){
-  //assert( rval == MB_SUCCESS );
-  // get tag handle
   MBErrorCode rval;
   MBTag src_tag;
   rval = MBI->tag_get_handle(src_tag_name, moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, src_tag);
   // THIS ASSERT FAILS because we do not know number of energy groups a priori.
   //assert( rval == MB_SUCCESS );
-  // get tag size
   int src_tag_size;
   rval = MBI->tag_get_bytes(src_tag, *(&src_tag_size));
   //assert( rval == MB_SUCCESS );
@@ -109,7 +117,7 @@ void Sampling::get_mesh_tag_data(MBRange ves, std::vector<double>volumes){
   int i, j;
   for(i=0; i<ves.size(); ++i){
     for(j=0; j<num_e_groups; ++j){
-     pdf[i*num_e_groups + j] *=  volumes[i];
+       pdf[i*num_e_groups + j] *=  volumes[i];
     }
   }
   //normalize
@@ -122,38 +130,54 @@ void Sampling::get_mesh_tag_data(MBRange ves, std::vector<double>volumes){
   }
 
 
-  if(bias == true){
-    MBTag bias_tag;
-    rval = MBI->tag_get_handle(bias_tag_name, moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, bias_tag);
-    int bias_tag_size;
-    rval = MBI->tag_get_bytes(bias_tag, *(&bias_tag_size));
-    int num_bias_groups = bias_tag_size/sizeof(double);
+  if(analog == false){
+    std::vector<double> bias_pdf(ves.size()*num_e_groups); 
+    if(uniform == true){
+      for(i=0; i<ves.size(); ++i){
+        for(j=0; j<num_e_groups; ++j)
+           bias_pdf[i*num_e_groups + j] =  volumes[i];
+      }
+    }else if(uniform == false){
+      MBTag bias_tag;
+      rval = MBI->tag_get_handle(bias_tag_name, moab::MB_TAG_VARLEN, MB_TYPE_DOUBLE, bias_tag);
+      int bias_tag_size;
+      rval = MBI->tag_get_bytes(bias_tag, *(&bias_tag_size));
+      int num_bias_groups = bias_tag_size/sizeof(double);
 
-    if (num_bias_groups == num_e_groups){
-      phase_space_bias = true;
-    } else if(num_bias_groups == 1){
-      phase_space_bias = false;
+      if (num_bias_groups == num_e_groups){
+        rval = MBI->tag_get_data(src_tag, ves, &bias_pdf[0]);
+        for(i=0; i<ves.size(); ++i){
+          for(j=0; j<num_e_groups; ++j)
+             bias_pdf[i*num_e_groups + j] *=  volumes[i];
+        }
+      }else if(num_bias_groups == 1){
+        std::vector<double> spacial_pdf(ves.size()); 
+        rval = MBI->tag_get_data(src_tag, ves, &spacial_pdf[0]);
+        for(i=0; i<ves.size(); ++i){
+          bias_pdf[i*num_e_groups + j] *=  spacial_pdf[i]*volumes[i];
+        }
+      }
+      else
+        throw std::length_error("Length of bias tag must equal length of the source tag, or 1.");
+
+      sum = 0;
+      for(i=0; i<ves.size()*num_e_groups; ++i){
+        sum += bias_pdf[i];
+      }
+      for(i=0; i<ves.size()*num_bias_groups; ++i){
+        bias_pdf[i] /= sum;
+      }
     }
-    else{
-    std::cout<<"Length of bias tag must equal length of the source tag, or 1."<<std::endl;
-      exit(1);
-    }
-  
-    std::vector<double> q(ves.size()*num_bias_groups); 
-    rval = MBI->tag_get_data(src_tag, ves, &q[0]);
-    sum = 0;
-    for(i=0; i<ves.size()*num_bias_groups; ++i){
-      sum += q[i];
-    }
-    for(i=0; i<ves.size()*num_bias_groups; ++i){
-      q[i] /= sum;
-    }
-    
-  if(bias == true)  
+    //  Create alias table based off biased pdf and calculate birth weights.
+    at = new AliasTable(bias_pdf);
+    biased_weights.resize(ves.size()*num_e_groups);
+      for(i=0; i<ves.size()*num_e_groups; ++i){
+        biased_weights[i] = pdf[i]/bias_pdf[i];
+      }
+  }else if(analog == true){
     at = new AliasTable(pdf);
-  else
-    at = new AliasTable(bias_pdf)
   }
+      
 
 /* E_TAG STUFF
   MBTag e_tag;
@@ -252,14 +276,10 @@ void Sampling::get_e(int e_idx, double rand, double &e){
 }
 
 void Sampling::get_w(int pdf_idx, double &w){
-  if(bias == true){
-    if(phase_space_bias == true){
-      w = biased_weights[pdf_idx];
-    }else{
-      w = biased_weights[pdf_idx % num_e_groups];
-    }
-  }else{
+  if(analog == true){
     w = 1.0;
+  }else{
+    w = biased_weights[pdf_idx];
   }
 }
 

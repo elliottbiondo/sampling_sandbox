@@ -24,7 +24,7 @@ int main(int argc, char* argv[]){
 
 
  Sampling& sampling = *Sampling::instance();
- sampling.sampling_setup(argv[1], argv[2], argv[3]);
+ sampling.sampling_setup(argv[1], argv[2], argv[3], true);
  //sampling.sampling_setup(argv[1], argv[2], argv[3], argv[4]);
 
  double rands[6];

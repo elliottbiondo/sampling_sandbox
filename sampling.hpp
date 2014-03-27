@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
+#include <stdexcept> 
 
 #include "moab/Range.hpp"
 #include "MBCore.hpp"
@@ -16,8 +17,8 @@ public:
   static Sampling *instance(MBInterface *mb_impl = NULL);
   MBInterface* moab_instance() {return mbImpl;}
   ~Sampling();
-  void sampling_setup(char* file_name, char* src_tag_name, char* e_bound_tag_name);
-  void sampling_setup(char* file_name, char* src_tag_name, char* e_bounds_tag_name, char* bias_tag_name);
+  void sampling_setup(char* file_name, char* src_tag_name, char* e_bound_tag_name, bool analog);
+  void sampling_setup(char* file_name, char* src_tag_name, char* e_bounds_tag_name, bool analog, char* bias_tag_name);
   void particle_birth(double* rands, double &x, double &y, double &z, double &e, double &w);
 
 
@@ -40,7 +41,8 @@ private:
   };
   //  member variables
 public:
-  bool bias;
+  bool analog;
+  bool uniform;
   char* src_tag_name;
   char* e_bounds_tag_name;
   char* bias_tag_name;
@@ -56,7 +58,6 @@ public:
   };
   std::vector<vector_points> cart_sampler;
   AliasTable* at;
-  bool phase_space_bias;
   std::vector<double> biased_weights;
 
 private:
