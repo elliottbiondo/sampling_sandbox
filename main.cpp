@@ -24,14 +24,14 @@ int main(int argc, char* argv[]){
 
 
  Sampling& sampling = *Sampling::instance();
- //sampling.sampling_setup(argv[1], argv[2], argv[3], false);
- sampling.sampling_setup(argv[1], argv[2], argv[3], false, argv[4]);
+ sampling.sampling_setup_(argv[1], argv[2], argv[3], false);
+ //sampling.sampling_setup_(argv[1], argv[2], argv[3], true, argv[4]);
 
  double rands[6];
  double x, y, z, e, w;
  //sampling.particle_birth(rands, x, y, z, E);
   std::ofstream myfile;
-  myfile.open ("unstr.out");
+  myfile.open ("samples.out");
  for(i=0; i<5000; i++){
    for(j=0; j<6; j++){
      rands[j] = (double) rand()/RAND_MAX;

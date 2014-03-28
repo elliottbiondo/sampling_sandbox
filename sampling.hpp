@@ -19,8 +19,8 @@ public:
   static Sampling *instance(MBInterface *mb_impl = NULL);
   MBInterface* moab_instance() {return mbImpl;}
   ~Sampling();
-  void sampling_setup(char* file_name, char* src_tag_name, char* e_bound_tag_name, bool analog);
-  void sampling_setup(char* file_name, char* src_tag_name, char* e_bounds_file_name, bool analog, char* bias_tag_name);
+  void sampling_setup_(char* file_name, char* src_tag_name, char* e_bound_tag_name, bool analog);
+  void sampling_setup_(char* file_name, char* src_tag_name, char* e_bounds_file_name, bool analog, char* bias_tag_name);
   void particle_birth(double* rands, double &x, double &y, double &z, double &e, double &w);
 
 

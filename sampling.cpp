@@ -1,9 +1,3 @@
-/*
- * Contents:  Random-number sampling using the Walker-Vose alias method,
- * Copyright: Joachim Wuttke, Forschungszentrum Juelich GmbH (2013)
- * M. D. Vose, IEEE T. Software Eng. 17, 972 (1991)
- * A. J. Walker, Electronics Letters 10, 127 (1974); ACM TOMS 3, 253 (1977)
- */
 
 #include "sampling.hpp"
 #define MBI moab_instance()
@@ -20,18 +14,18 @@ Sampling::Sampling(MBInterface *mb_impl)
    : mbImpl(mb_impl), uniform(false){}
 
 
-void Sampling::sampling_setup(char* file_name, char* src_tag_name, char* e_bounds_file, bool _analog){
+void Sampling::sampling_setup_(char* file_name, char* src_tag_name, char* e_bounds_file, bool _analog){
 
   analog = _analog;
   if(analog == false)
     uniform = true;
 
   char* bias_tag_name = NULL;
-  sampling_setup(file_name, src_tag_name, e_bounds_file, analog, bias_tag_name);
+  sampling_setup_(file_name, src_tag_name, e_bounds_file, analog, bias_tag_name);
 }
 
 
-void Sampling::sampling_setup(char* file_name, char* _src_tag_name, char* e_bounds_file, bool analog, char* _bias_tag_name){
+void Sampling::sampling_setup_(char* file_name, char* _src_tag_name, char* e_bounds_file, bool analog, char* _bias_tag_name){
 
   if(analog == true && _bias_tag_name != NULL){
     throw std::invalid_argument("bias_tag_name should not be specified for analog sampling");
@@ -209,15 +203,13 @@ void Sampling::get_e_bounds_data(char* e_bounds_file){
  // std::cout << e_bounds[0] << std::endl;
   //std::cout << e_bounds[0] << e_bounds[1] << e_bounds[2] << std::endl;
   */
-    e_bounds.resize(num_e_groups + 1);
-    std::ofstream file(e_bounds_file);
-    if(file.good()) {
-        file.flags(std::ios::fixed);
-        std::copy(e_bounds.begin(), e_bounds.end(), std::ostream_iterator<double>(file));
-    } else {
-        std::cout << "adsfasd" << std::endl;
-    }
-    file.close();
+  std::ifstream inputFile(e_bounds_file);
+  // test file open   
+  if (inputFile) {        
+    double value;
+    while (inputFile >> value)
+      e_bounds.push_back(value);
+  }
 
 /*
     std::ifstream input (e_bounds_file);
@@ -243,13 +235,12 @@ void Sampling::particle_birth(double* rands, double &x, double &y, double &z, do
   int ve_idx = pdf_idx/num_e_groups;
   int e_idx = pdf_idx % num_e_groups;
   
-  // get x, y, za
+  // get x, y, z
   double e_rand = rands[5];
   get_e(e_idx, e_rand, e);
 
   double xyz_rands[3] = {rands[2], rands[3], rands[4]};
   get_xyz(ve_idx, xyz_rands, x, y, z);
-
   get_w(pdf_idx, w);
 }
 
@@ -288,15 +279,9 @@ void Sampling::get_xyz(int ve_idx, double* rands, double &x, double &y, double &
 }
 
 void Sampling::get_e(int e_idx, double rand, double &e){
-
-   //e_bounds.push_back(1.1);
-   //e_bounds.push_back(1.2);
-   //e_bounds.push_back(1.3);
-
    double e_min = e_bounds[e_idx];
    double e_max = e_bounds[e_idx + 1];
    e = rand * (e_max - e_min) + e_min;
-
 }
 
 void Sampling::get_w(int pdf_idx, double &w){
@@ -308,49 +293,53 @@ void Sampling::get_w(int pdf_idx, double &w){
 }
 
 Sampling::AliasTable::AliasTable(std::vector<double> p){
-    n = p.size();
-    prob.resize(n);
-    alias.resize(n);
-    std::vector<double> small(n);
-    std::vector<double> large(n);
-    int i, a, g;
+  // Random-number sampling using the Walker-Vose alias method,
+  // Copyright: Joachim Wuttke, Forschungszentrum Juelich GmbH (2013)
+  // M. D. Vose, IEEE T. Software Eng. 17, 972 (1991)
+  // A. J. Walker, Electronics Letters 10, 127 (1974); ACM TOMS 3, 253 (1977)
+  n = p.size();
+  prob.resize(n);
+  alias.resize(n);
+  std::vector<double> small(n);
+  std::vector<double> large(n);
+  int i, a, g;
 
-    for(i=0; i<n; ++i) 
-      p[i] *= n;
+  for(i=0; i<n; ++i) 
+    p[i] *= n;
 
-    // Set separate index lists for small and large probabilities:
-    int n_s = 0;
-    int n_l = 0;
-    for(i=n-1; i>=0; --i) {
-        // at variance from Schwarz, we revert the index order
-        if(p[i] < 1)
-            small[n_s++] = i;
-        else
-            large[n_l++] = i;
-    }
+  // Set separate index lists for small and large probabilities:
+  int n_s = 0;
+  int n_l = 0;
+  for(i=n-1; i>=0; --i) {
+    // at variance from Schwarz, we revert the index order
+    if(p[i] < 1)
+      small[n_s++] = i;
+    else
+      large[n_l++] = i;
+  }
 
-    // Work through index lists
-    while(n_s && n_l){
-        a = small[--n_s]; // Schwarz's l
-        g = large[--n_l]; // Schwarz's g
-        prob[a] = p[a];
-        alias[a] = g;
-        p[g] = p[g] + p[a] - 1;
-        if (p[g] < 1)
-            small[n_s++] = g;
-        else
-            large[n_l++] = g;
-    }
+  // Work through index lists
+  while(n_s && n_l){
+    a = small[--n_s]; // Schwarz's l
+    g = large[--n_l]; // Schwarz's g
+    prob[a] = p[a];
+    alias[a] = g;
+    p[g] = p[g] + p[a] - 1;
+    if (p[g] < 1)
+      small[n_s++] = g;
+    else
+      large[n_l++] = g;
+  }
 
-    while(n_l)
-        prob[large[--n_l]] = 1;
+  while(n_l)
+    prob[large[--n_l]] = 1;
 
-    while(n_s)
-        // can only happen through numeric instability
-        prob[small[--n_s] ] = 1;
+  while(n_s)
+    // can only happen through numeric instability
+    prob[small[--n_s] ] = 1;
 }
 
 int Sampling::AliasTable::sample_pdf(double rand1, double rand2){
-    int i = (int) n * rand1;
-    return rand2 < prob[i] ? i : alias[i];
+  int i = (int) n * rand1;
+  return rand2 < prob[i] ? i : alias[i];
 }
