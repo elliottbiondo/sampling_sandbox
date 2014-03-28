@@ -16,11 +16,6 @@ with open("unstr.out", 'r') as f:
    for line in f.readlines():
        a.append([float(x) for x in line.split()])
 
-for row in a:
-    b = np.sqrt(row[0]**2 + row[1]**2 + row[2]**2)
-    if b > 10:
-       print b
-
 
 p = np.array(a)
 ax.scatter(p[:,0],p[:,1],p[:,2], c=p[:,4])

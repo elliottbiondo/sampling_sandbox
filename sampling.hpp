@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <vector>
 #include <stdexcept> 
+#include <sstream>
+#include <string>
 
 #include "moab/Range.hpp"
 #include "MBCore.hpp"
@@ -18,7 +20,7 @@ public:
   MBInterface* moab_instance() {return mbImpl;}
   ~Sampling();
   void sampling_setup(char* file_name, char* src_tag_name, char* e_bound_tag_name, bool analog);
-  void sampling_setup(char* file_name, char* src_tag_name, char* e_bounds_tag_name, bool analog, char* bias_tag_name);
+  void sampling_setup(char* file_name, char* src_tag_name, char* e_bounds_file_name, bool analog, char* bias_tag_name);
   void particle_birth(double* rands, double &x, double &y, double &z, double &e, double &w);
 
 
@@ -26,6 +28,7 @@ private:
   // functions and classes
   void get_mesh_geom_data(MBRange ves, std::vector<double> &volumes);
   void get_mesh_tag_data(MBRange ves, std::vector<double>volumes);
+  void get_e_bounds_data(char* e_bounds_file);
   void get_xyz(int ve_idx, double* rands, double &x, double &y, double &z);
   void get_e(int e_idx, double rand, double &e);
   void get_w(int pdf_idx, double &w);
@@ -44,7 +47,6 @@ public:
   bool analog;
   bool uniform;
   char* src_tag_name;
-  char* e_bounds_tag_name;
   char* bias_tag_name;
   int num_e_groups;
   MBEntityType ve_type;

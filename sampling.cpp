@@ -20,18 +20,18 @@ Sampling::Sampling(MBInterface *mb_impl)
    : mbImpl(mb_impl), uniform(false){}
 
 
-void Sampling::sampling_setup(char* file_name, char* src_tag_name, char* e_bounds_tag_name, bool _analog){
+void Sampling::sampling_setup(char* file_name, char* src_tag_name, char* e_bounds_file, bool _analog){
 
   analog = _analog;
   if(analog == false)
     uniform = true;
 
   char* bias_tag_name = NULL;
-  sampling_setup(file_name, src_tag_name, e_bounds_tag_name, analog, bias_tag_name);
+  sampling_setup(file_name, src_tag_name, e_bounds_file, analog, bias_tag_name);
 }
 
 
-void Sampling::sampling_setup(char* file_name, char* _src_tag_name, char* _e_bounds_tag_name, bool analog, char* _bias_tag_name){
+void Sampling::sampling_setup(char* file_name, char* _src_tag_name, char* e_bounds_file, bool analog, char* _bias_tag_name){
 
   if(analog == true && _bias_tag_name != NULL){
     throw std::invalid_argument("bias_tag_name should not be specified for analog sampling");
@@ -40,7 +40,6 @@ void Sampling::sampling_setup(char* file_name, char* _src_tag_name, char* _e_bou
   // If this function is not being called from the other overload of this 
   // function, then a bias tag has been specified. 
   src_tag_name = _src_tag_name;
-  e_bounds_tag_name = _e_bounds_tag_name;
   bias_tag_name = _bias_tag_name;
 
   MBErrorCode rval;
@@ -68,7 +67,7 @@ void Sampling::sampling_setup(char* file_name, char* _src_tag_name, char* _e_bou
   std::vector<double> volumes(ves.size());
   get_mesh_geom_data(ves, volumes);
   get_mesh_tag_data(ves, volumes);
-  //get_e_bounds_data(e_bounds_tag);
+  get_e_bounds_data(e_bounds_file);
 }
 
 void Sampling::get_mesh_geom_data(MBRange ves, std::vector<double> &volumes){
@@ -176,12 +175,14 @@ void Sampling::get_mesh_tag_data(MBRange ves, std::vector<double>volumes){
   }else if(analog == true){
     at = new AliasTable(pdf);
   }
-      
 
+}
+
+void Sampling::get_e_bounds_data(char* e_bounds_file){
 /* E_TAG STUFF
   MBTag e_tag;
-  std::cout << e_bounds_tag_name << std::endl;
-  //rval = MBI->tag_get_handle(e_bounds_tag_name, 3, MB_TYPE_DOUBLE, e_tag);
+  std::cout << e_bounds_file_name << std::endl;
+  //rval = MBI->tag_get_handle(e_bounds_file_name, 3, MB_TYPE_DOUBLE, e_tag);
   rval = MBI->tag_get_handle("e_bounds2", 3, MB_TYPE_DOUBLE, e_tag);
   std::cout << "error code: " << rval << std::endl;
   std::cout << "e_tag"<< e_tag<< std::endl;
@@ -208,7 +209,31 @@ void Sampling::get_mesh_tag_data(MBRange ves, std::vector<double>volumes){
  // std::cout << e_bounds[0] << std::endl;
   //std::cout << e_bounds[0] << e_bounds[1] << e_bounds[2] << std::endl;
   */
+    e_bounds.resize(num_e_groups + 1);
+    std::ofstream file(e_bounds_file);
+    if(file.good()) {
+        file.flags(std::ios::fixed);
+        std::copy(e_bounds.begin(), e_bounds.end(), std::ostream_iterator<double>(file));
+    } else {
+        std::cout << "adsfasd" << std::endl;
+    }
+    file.close();
 
+/*
+    std::ifstream input (e_bounds_file);
+    std::string lineData;
+
+    while(getline(input, lineData)){
+        double d;
+        std::vector<double> row;
+        std::stringstream lineStream(lineData);
+
+        while (lineStream >> d)
+            row.push_back(d);
+
+        e_bounds.push_back(row);
+    }
+*/
 }
 
 
@@ -264,7 +289,7 @@ void Sampling::get_xyz(int ve_idx, double* rands, double &x, double &y, double &
 
 void Sampling::get_e(int e_idx, double rand, double &e){
 
-   e_bounds.push_back(1.1);
+   //e_bounds.push_back(1.1);
    //e_bounds.push_back(1.2);
    //e_bounds.push_back(1.3);
 
