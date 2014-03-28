@@ -16,6 +16,8 @@ subroutine source
   integer, save :: icl_tmp
   integer :: source_i
   integer :: in_out
+  real(dknd), dimension(6) :: rands
+
 
   if(first_run .eqv. .true.)then
     icl_tmp = 0
@@ -31,11 +33,18 @@ subroutine source
   endif
 
 100 continue
-  real(6) rands = (/ rang(), rang(), rang(), rang(), rang(), rang() /)
+  rands(1) = rang()
+  rands(2) = rang()
+  rands(3) = rang()
+  rands(4) = rang()
+  rands(5) = rang()
+  rands(6) = rang()
+
   call particle_birth(rands, xxx, yyy, zzz, erg, wgt)
   call chkcel(icl_tmp,2,in_out)
   if(in_out .ne. 0)then
     goto 100
+  endif
 
  icl = icl_temp
  tme = 0.0
