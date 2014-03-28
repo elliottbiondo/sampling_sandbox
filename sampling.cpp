@@ -129,7 +129,6 @@ void Sampling::get_mesh_tag_data(MBRange ves, std::vector<double>volumes){
     pdf[i] /= sum;
   }
 
-
   if(analog == false){
     std::vector<double> bias_pdf(ves.size()*num_e_groups); 
     if(uniform == true){
@@ -145,14 +144,14 @@ void Sampling::get_mesh_tag_data(MBRange ves, std::vector<double>volumes){
       int num_bias_groups = bias_tag_size/sizeof(double);
 
       if (num_bias_groups == num_e_groups){
-        rval = MBI->tag_get_data(src_tag, ves, &bias_pdf[0]);
+        rval = MBI->tag_get_data(bias_tag, ves, &bias_pdf[0]);
         for(i=0; i<ves.size(); ++i){
           for(j=0; j<num_e_groups; ++j)
              bias_pdf[i*num_e_groups + j] *=  volumes[i];
         }
       }else if(num_bias_groups == 1){
         std::vector<double> spacial_pdf(ves.size()); 
-        rval = MBI->tag_get_data(src_tag, ves, &spacial_pdf[0]);
+        rval = MBI->tag_get_data(bias_tag, ves, &spacial_pdf[0]);
         for(i=0; i<ves.size(); ++i){
           bias_pdf[i*num_e_groups + j] *=  spacial_pdf[i]*volumes[i];
         }
@@ -266,8 +265,8 @@ void Sampling::get_xyz(int ve_idx, double* rands, double &x, double &y, double &
 void Sampling::get_e(int e_idx, double rand, double &e){
 
    e_bounds.push_back(1.1);
-   e_bounds.push_back(1.2);
-   e_bounds.push_back(1.3);
+   //e_bounds.push_back(1.2);
+   //e_bounds.push_back(1.3);
 
    double e_min = e_bounds[e_idx];
    double e_max = e_bounds[e_idx + 1];

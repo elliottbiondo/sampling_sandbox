@@ -23,7 +23,7 @@ for row in a:
 
 
 p = np.array(a)
-ax.scatter(p[:,0],p[:,1],p[:,2], c=p[:,3])
+ax.scatter(p[:,0],p[:,1],p[:,2], c=p[:,4])
 
 plt.draw()
 
