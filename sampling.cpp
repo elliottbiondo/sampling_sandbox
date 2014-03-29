@@ -1,8 +1,28 @@
 
 #include "sampling.hpp"
 #define MBI moab_instance()
+#define SI Sampling::instance()
 
 Sampling *Sampling::instance_ = NULL;
+
+/*
+ ( FORTRAN API
+*/
+void sampling_setup_(char* file_name, char* src_tag_name, char* e_bound_tag_name, bool analog){
+  SI->sampling_setup(file_name, src_tag_name, e_bound_tag_name, analog);
+}
+
+void sampling_setup_(char* file_name, char* src_tag_name, char* e_bounds_file_name, bool analog, char* bias_tag_name){
+  SI->sampling_setup(file_name, src_tag_name, e_bounds_file_name, analog, bias_tag_name);
+}
+
+void particle_birth_(double* rands, double &x, double &y, double &z, double &e, double &w){
+  SI->particle_birth(rands, x, y, z, e, w);
+}
+
+/*
+ * IPA NARTROF
+ */
 
 void Sampling::create_instance(MBInterface *mb_impl)
 {
@@ -14,18 +34,18 @@ Sampling::Sampling(MBInterface *mb_impl)
    : mbImpl(mb_impl), uniform(false){}
 
 
-void Sampling::sampling_setup_(char* file_name, char* src_tag_name, char* e_bounds_file, bool _analog){
+void Sampling::sampling_setup(char* file_name, char* src_tag_name, char* e_bounds_file, bool _analog){
 
   analog = _analog;
   if(analog == false)
     uniform = true;
 
   char* bias_tag_name = NULL;
-  sampling_setup_(file_name, src_tag_name, e_bounds_file, analog, bias_tag_name);
+  sampling_setup(file_name, src_tag_name, e_bounds_file, analog, bias_tag_name);
 }
 
 
-void Sampling::sampling_setup_(char* file_name, char* _src_tag_name, char* e_bounds_file, bool analog, char* _bias_tag_name){
+void Sampling::sampling_setup(char* file_name, char* _src_tag_name, char* e_bounds_file, bool analog, char* _bias_tag_name){
 
   if(analog == true && _bias_tag_name != NULL){
     throw std::invalid_argument("bias_tag_name should not be specified for analog sampling");

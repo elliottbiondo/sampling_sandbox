@@ -1,7 +1,6 @@
 #include "sampling.hpp"
 #include <iostream>
 
-#define SI Sampling::instance()
 int main(int argc, char* argv[]){
 
   int i, j;
@@ -25,7 +24,7 @@ int main(int argc, char* argv[]){
 
 
  //Sampling& sampling = *Sampling::instance();
- SI->sampling_setup_(argv[1], argv[2], argv[3], false);
+ sampling_setup_(argv[1], argv[2], argv[3], false);
  //sampling.sampling_setup_(argv[1], argv[2], argv[3], true, argv[4]);
 
  double rands[6];
@@ -37,7 +36,7 @@ int main(int argc, char* argv[]){
    for(j=0; j<6; j++){
      rands[j] = (double) rand()/RAND_MAX;
    }
-   SI->particle_birth(rands, x, y, z, e, w);
+   particle_birth_(rands, x, y, z, e, w);
    myfile << x <<" "<< y <<" "<<z<< " "<< e << " "<< w <<std::endl;
  }
 return 0;
