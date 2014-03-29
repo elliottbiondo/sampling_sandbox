@@ -12,11 +12,22 @@
 #include "MBCore.hpp"
 #include "measure.hpp"
 #include "MBCartVect.hpp"
+#define MBI moab_instance()
+#define SI Sampling::instance()
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 // Fortran interface
-void sampling_setup_(char* file_name, char* src_tag_name, char* e_bound_tag_name, bool analog);
-void sampling_setup_(char* file_name, char* src_tag_name, char* e_bounds_file_name, bool analog, char* bias_tag_name);
-void particle_birth_(double* rands, double &x, double &y, double &z, double &e, double &w);
+//void Fsampling_setup_(char* file_name, char* src_tag_name, char* e_bound_tag_name, bool analog);
+//void Fsampling_setup_(char* file_name, char* src_tag_name, char* e_bounds_file_name, bool analog, char* bias_tag_name);
+//void Fparticle_birth_(double* rands, double &x, double &y, double &z, double &e, double &w);
+
+void gggsampling_setup_();
+void fsampling_setup_(char*, char*, char*, bool analog);
+void fsampling_setup2_(char*, char*, char*, bool, char*);
+void fparticle_birth_(double*, double &, double &, double &, double &, double &);
 
 class Sampling
 {
@@ -80,3 +91,8 @@ inline Sampling *Sampling::instance(MBInterface *mb_impl)
   if (NULL == instance_) create_instance(mb_impl);
   return instance_;
 }
+
+#ifdef __cplusplus
+} //  extern "C"
+#endif
+

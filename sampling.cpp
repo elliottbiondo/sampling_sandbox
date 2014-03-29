@@ -1,22 +1,25 @@
-
 #include "sampling.hpp"
-#define MBI moab_instance()
-#define SI Sampling::instance()
+//#define MBI moab_instance()
+//#define SI Sampling::instance()
 
 Sampling *Sampling::instance_ = NULL;
 
 /*
  ( FORTRAN API
 */
-void sampling_setup_(char* file_name, char* src_tag_name, char* e_bound_tag_name, bool analog){
-  SI->sampling_setup(file_name, src_tag_name, e_bound_tag_name, analog);
+void gggsampling_setup_(){
+  SI->sampling_setup("test.h5m", "phtn_src2", "e_bounds_file", true);
 }
 
-void sampling_setup_(char* file_name, char* src_tag_name, char* e_bounds_file_name, bool analog, char* bias_tag_name){
+void fsampling_setup_(char* file_name, char* src_tag_name, char* e_bounds_tag_name, bool analog){
+  SI->sampling_setup(file_name, src_tag_name, e_bounds_tag_name, analog);
+}
+
+void fsampling_setup2_(char* file_name, char* src_tag_name, char* e_bounds_file_name, bool analog, char* bias_tag_name){
   SI->sampling_setup(file_name, src_tag_name, e_bounds_file_name, analog, bias_tag_name);
 }
 
-void particle_birth_(double* rands, double &x, double &y, double &z, double &e, double &w){
+void fparticle_birth_(double* rands, double &x, double &y, double &z, double &e, double &w){
   SI->particle_birth(rands, x, y, z, e, w);
 }
 
