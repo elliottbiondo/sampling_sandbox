@@ -9,6 +9,7 @@ Sampling *Sampling::instance_ = NULL;
 */
 void gggsampling_setup_(){
   SI->sampling_setup("test.h5m", "phtn_src2", "e_bounds_file", true);
+  std::cout<< "hello" << std::endl;
 }
 
 void fsampling_setup_(char* file_name, char* src_tag_name, char* e_bounds_tag_name, bool analog){
@@ -21,6 +22,7 @@ void fsampling_setup2_(char* file_name, char* src_tag_name, char* e_bounds_file_
 
 void fparticle_birth_(double* rands, double &x, double &y, double &z, double &e, double &w){
   SI->particle_birth(rands, x, y, z, e, w);
+  std::cout <<x<<" "<<y<<" "<<z<<" "<<e<<" "<<w<<" "<< std::endl;
 }
 
 /*
