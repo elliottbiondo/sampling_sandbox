@@ -1,5 +1,6 @@
 program blah
   implicit none
+ 
   real :: xxx, yyy, zzz, erg, wgt
   real, dimension(6) :: rands
   rands(1) = 0.11

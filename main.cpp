@@ -38,7 +38,7 @@ int main(int argc, char* argv[]){
      rands[j] = (double) rand()/RAND_MAX;
    }
    fparticle_birth_(rands, x, y, z, e, w);
-   myfile << x <<" "<< y <<" "<<z<< " "<< e << " "<< w <<std::endl;
+   //myfile << x <<" "<< y <<" "<<z<< " "<< e << " "<< w <<std::endl;
  }
 return 0;
 }

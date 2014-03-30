@@ -8,7 +8,7 @@ Sampling *Sampling::instance_ = NULL;
  ( FORTRAN API
 */
 void gggsampling_setup_(){
-  SI->sampling_setup("test.h5m", "phtn_src2", "e_bounds_file", true);
+  SI->sampling_setup((char*)&"test.h5m", (char*)&"phtn_src2", (char*)&"e_bounds_file", true);
   std::cout<< "hello" << std::endl;
 }
 
@@ -21,8 +21,17 @@ void fsampling_setup2_(char* file_name, char* src_tag_name, char* e_bounds_file_
 }
 
 void fparticle_birth_(double* rands, double &x, double &y, double &z, double &e, double &w){
-  SI->particle_birth(rands, x, y, z, e, w);
-  std::cout <<x<<" "<<y<<" "<<z<<" "<<e<<" "<<w<<" "<< std::endl;
+
+  double x1, y1, z1, e1, w1;
+
+  double rands1[6];
+  int j;
+  for(j=0; j<6; j++){
+   rands1[j] = (double) rand()/RAND_MAX;
+  }
+
+  SI->particle_birth(rands1, x1, y1, z1, e1, w1);
+  std::cout <<x1<<" "<<y1<<" "<<z1<<" "<<e1<<" "<<w1<<" "<< std::endl;
 }
 
 /*
