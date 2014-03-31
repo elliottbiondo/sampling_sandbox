@@ -24,10 +24,11 @@ extern "C" {
 //void Fsampling_setup_(char* file_name, char* src_tag_name, char* e_bounds_file_name, bool analog, char* bias_tag_name);
 //void Fparticle_birth_(double* rands, double &x, double &y, double &z, double &e, double &w);
 
+void goat_sample_(double*);
 void gggsampling_setup_();
-void fsampling_setup_(char*, char*, char*, bool analog);
+void fsampling_setup_(char*, char*, char*, bool);
 void fsampling_setup2_(char*, char*, char*, bool, char*);
-void fparticle_birth_(double*, double &, double &, double &, double &, double &);
+void fparticle_birth_(double*, double*, double &, double &, double &, double &);
 
 class Sampling
 {
@@ -37,7 +38,7 @@ public:
   ~Sampling();
   void sampling_setup(char* file_name, char* src_tag_name, char* e_bound_tag_name, bool analog);
   void sampling_setup(char* file_name, char* src_tag_name, char* e_bounds_file_name, bool analog, char* bias_tag_name);
-  void particle_birth(double* rands, double &x, double &y, double &z, double &e, double &w);
+  void particle_birth(double* rands, double* x, double &y, double &z, double &e, double &w);
 
 
 private:
@@ -45,7 +46,7 @@ private:
   void get_mesh_geom_data(MBRange ves, std::vector<double> &volumes);
   void get_mesh_tag_data(MBRange ves, std::vector<double>volumes);
   void get_e_bounds_data(char* e_bounds_file);
-  void get_xyz(int ve_idx, double* rands, double &x, double &y, double &z);
+  void get_xyz(int ve_idx, double* rands, double* x, double &y, double &z);
   void get_e(int e_idx, double rand, double &e);
   void get_w(int pdf_idx, double &w);
   class AliasTable

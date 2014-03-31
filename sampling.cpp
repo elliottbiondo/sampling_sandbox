@@ -7,6 +7,10 @@ Sampling *Sampling::instance_ = NULL;
 /*
  ( FORTRAN API
 */
+void goat_sample_(double* unicorn){
+ *unicorn = 11.3;
+}
+
 void gggsampling_setup_(){
   SI->sampling_setup((char*)&"test.h5m", (char*)&"phtn_src2", (char*)&"e_bounds_file", true);
   std::cout<< "hello" << std::endl;
@@ -20,7 +24,7 @@ void fsampling_setup2_(char* file_name, char* src_tag_name, char* e_bounds_file_
   SI->sampling_setup(file_name, src_tag_name, e_bounds_file_name, analog, bias_tag_name);
 }
 
-void fparticle_birth_(double* rands, double &x, double &y, double &z, double &e, double &w){
+void fparticle_birth_(double* rands, double* x, double &y, double &z, double &e, double &w){
 
   double x1, y1, z1, e1, w1;
 
@@ -30,8 +34,8 @@ void fparticle_birth_(double* rands, double &x, double &y, double &z, double &e,
    rands1[j] = (double) rand()/RAND_MAX;
   }
 
-  SI->particle_birth(rands1, x1, y1, z1, e1, w1);
-  std::cout <<x1<<" "<<y1<<" "<<z1<<" "<<e1<<" "<<w1<<" "<< std::endl;
+  SI->particle_birth(rands1, x, y1, z1, e1, w1);
+  //std::cout <<*x<<" "<<y1<<" "<<z1<<" "<<e1<<" "<<w1<<" "<< std::endl;
 }
 
 /*
@@ -263,7 +267,7 @@ void Sampling::get_e_bounds_data(char* e_bounds_file){
 }
 
 
-void Sampling::particle_birth(double* rands, double &x, double &y, double &z, double &e, double &w){
+void Sampling::particle_birth(double* rands, double* x, double &y, double &z, double &e, double &w){
   // get indices
   int pdf_idx = at->sample_pdf(rands[0], rands[1]);
   int ve_idx = pdf_idx/num_e_groups;
@@ -278,7 +282,7 @@ void Sampling::particle_birth(double* rands, double &x, double &y, double &z, do
   get_w(pdf_idx, w);
 }
 
-void Sampling::get_xyz(int ve_idx, double* rands, double &x, double &y, double &z){
+void Sampling::get_xyz(int ve_idx, double* rands, double* x, double &y, double &z){
 
   double s = rands[0];
   double t = rands[1];
@@ -307,7 +311,8 @@ void Sampling::get_xyz(int ve_idx, double* rands, double &x, double &y, double &
                               t*cart_sampler[ve_idx].y_vec + \
                               u*cart_sampler[ve_idx].z_vec + \
                                 cart_sampler[ve_idx].o_point;
-  x = birth_location[0];
+  *x = birth_location[0];
+  std::cout<<*x<<std::endl;
   y = birth_location[1];
   z = birth_location[2];
 }
