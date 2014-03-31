@@ -1,6 +1,6 @@
 program blah
   implicit none
-  double precision unicorn
+  logical:: analog  = .false.
   double precision :: xxx, yyy, zzz, erg, wgt
   double precision, dimension(6) :: rands
   rands(1) = 0.11
@@ -9,8 +9,8 @@ program blah
   rands(4) = 0.44
   rands(5) = 0.55
   rands(6) = 0.66
-  !call fsampling_setup("test.h5m", "phtn_src2", "e_bounds_file")
-  call gggsampling_setup()
+  call mcnp_sampling_setup(analog)
+  !call gggsampling_setup()
   call fparticle_birth(rands, xxx, yyy, zzz, erg, wgt)
-  write(*,*) 'x', xxx
+  write(*,*) 'x', xxx, 'y', yyy, 'z', zzz, 'erg', erg, 'w', wgt
 end program blah

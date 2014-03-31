@@ -24,13 +24,11 @@ int main(int argc, char* argv[]){
 
 
  //Sampling& sampling = *Sampling::instance();
- gggsampling_setup_();
- //fsampling_setup_(argv[1], argv[2], argv[3], false);
+ fsampling_setup_(argv[1], argv[2], argv[3], false);
  //sampling.sampling_setup_(argv[1], argv[2], argv[3], true, argv[4]);
 
  double rands[6];
- double *x;
- double y, z, e, w;
+ double x, y, z, e, w;
  //sampling.particle_birth(rands, x, y, z, E);
   std::ofstream myfile;
   myfile.open ("samples.out");
@@ -39,7 +37,7 @@ int main(int argc, char* argv[]){
      rands[j] = (double) rand()/RAND_MAX;
    }
    fparticle_birth_(rands, x, y, z, e, w);
-   myfile << *x <<" "<< y <<" "<<z<< " "<< e << " "<< w <<std::endl;
+   myfile << x <<" "<< y <<" "<<z<< " "<< e << " "<< w <<std::endl;
  }
 return 0;
 }
