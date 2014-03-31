@@ -22,13 +22,19 @@ void fsampling_setup2_(char* file_name, char* src_tag_name, char* e_bounds_file_
 
 void fparticle_birth_(double* rands, double* x, double* y, double* z, double* e, double* w){
 
+  std::cout << rands[0]<<std::endl;
+  std::cout << rands[1]<<std::endl;
+  std::cout << rands[2]<<std::endl;
+  std::cout << rands[3]<<std::endl;
+  std::cout << rands[4]<<std::endl;
+  std::cout << rands[5]<<std::endl;
   double rands1[6];
   int j;
   for(j=0; j<6; j++){
    rands1[j] = (double) rand()/RAND_MAX;
   }
 
-  SI->particle_birth(rands1, x, y, z, e, w);
+  SI->particle_birth(rands, x, y, z, e, w);
   //std::cout <<*x<<" "<<y1<<" "<<z1<<" "<<e1<<" "<<w1<<" "<< std::endl;
 }
 
@@ -306,7 +312,6 @@ void Sampling::get_xyz(int ve_idx, double* rands, double* x, double* y, double* 
                               u*cart_sampler[ve_idx].z_vec + \
                                 cart_sampler[ve_idx].o_point;
   *x = birth_location[0];
-  std::cout<<*x<<std::endl;
   *y = birth_location[1];
   *z = birth_location[2];
 }

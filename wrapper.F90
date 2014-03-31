@@ -3,12 +3,12 @@ program blah
   logical:: analog  = .false.
   double precision :: xxx, yyy, zzz, erg, wgt
   double precision, dimension(6) :: rands
-  rands(1) = 0.11
-  rands(2) = 0.22
-  rands(3) = 0.33
-  rands(4) = 0.44
-  rands(5) = 0.55
-  rands(6) = 0.66
+  rands(1) = 0.332
+  rands(2) = 0.7654
+  rands(3) = 0.234
+  rands(4) = 0.63453
+  rands(5) = 0.234234
+  rands(6) = 0.1345
   call mcnp_sampling_setup(analog)
   !call gggsampling_setup()
   call fparticle_birth(rands, xxx, yyy, zzz, erg, wgt)
