@@ -9,8 +9,6 @@ Sampling *Sampling::instance_ = NULL;
 */
 
 void mcnp_sampling_setup_(bool* analog){
-  std::cout<<*analog<<std::endl;
-  
   SI->sampling_setup((char*)&"tagged_unstr.h5m", (char*)&"phtn_src2", (char*)&"e_bounds_file", *analog);
 }
 

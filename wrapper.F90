@@ -1,16 +1,19 @@
-program blah
+program psuedo_mcnp
   implicit none
   logical:: analog  = .true.
   double precision :: xxx, yyy, zzz, erg, wgt
   double precision, dimension(6) :: rands
-  rands(1) = 0.99
-  rands(2) = 0.22
-  rands(3) = 0.99
-  rands(4) = 0.44
-  rands(5) = 0.55
-  rands(6) = 0.66
+  integer:: i, j
+  integer, parameter :: out_unit=20
   call mcnp_sampling_setup(analog)
-  !call gggsampling_setup()
-  call fparticle_birth(rands, xxx, yyy, zzz, erg, wgt)
-  write(*,*) 'x', xxx, 'y', yyy, 'z', zzz, 'erg', erg, 'w', wgt
-end program blah
+
+  open(unit=out_unit,file="samples.out", action="write",status="replace")
+
+  do i=1,5000
+    do j=1,6
+      rands(j) = RAND()
+    end do
+      call fparticle_birth(rands, xxx, yyy, zzz, erg, wgt)
+      write(out_unit,*) xxx, yyy, zzz, erg, wgt
+  end do
+end program psuedo_mcnp
