@@ -8,34 +8,22 @@ Sampling *Sampling::instance_ = NULL;
  ( FORTRAN API
 */
 
-void mcnp_sampling_setup_(bool analog){
-  SI->sampling_setup((char*)&"test.h5m", (char*)&"phtn_src2", (char*)&"e_bounds_file", analog);
+void mcnp_sampling_setup_(bool* analog){
+  std::cout<<*analog<<std::endl;
+  
+  SI->sampling_setup((char*)&"tagged_unstr.h5m", (char*)&"phtn_src2", (char*)&"e_bounds_file", *analog);
 }
 
-void fsampling_setup_(char* file_name, char* src_tag_name, char* e_bounds_tag_name, bool analog){
+void fsampling_setup_(char* file_name, char* src_tag_name, char* e_bounds_tag_name, bool* analog){
   SI->sampling_setup(file_name, src_tag_name, e_bounds_tag_name, analog);
 }
 
-void fsampling_setup2_(char* file_name, char* src_tag_name, char* e_bounds_file_name, bool analog, char* bias_tag_name){
+void fsampling_setup2_(char* file_name, char* src_tag_name, char* e_bounds_file_name, bool* analog, char* bias_tag_name){
   SI->sampling_setup(file_name, src_tag_name, e_bounds_file_name, analog, bias_tag_name);
 }
 
 void fparticle_birth_(double* rands, double* x, double* y, double* z, double* e, double* w){
-
-  std::cout << rands[0]<<std::endl;
-  std::cout << rands[1]<<std::endl;
-  std::cout << rands[2]<<std::endl;
-  std::cout << rands[3]<<std::endl;
-  std::cout << rands[4]<<std::endl;
-  std::cout << rands[5]<<std::endl;
-  double rands1[6];
-  int j;
-  for(j=0; j<6; j++){
-   rands1[j] = (double) rand()/RAND_MAX;
-  }
-
   SI->particle_birth(rands, x, y, z, e, w);
-  //std::cout <<*x<<" "<<y1<<" "<<z1<<" "<<e1<<" "<<w1<<" "<< std::endl;
 }
 
 /*
